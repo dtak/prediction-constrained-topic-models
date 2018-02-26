@@ -1,3 +1,6 @@
+# C code compiled from cython
+*cython.c
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
