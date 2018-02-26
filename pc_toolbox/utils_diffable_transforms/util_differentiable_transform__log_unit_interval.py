@@ -25,7 +25,11 @@ import autograd.numpy as np
 from autograd.scipy.misc import logsumexp
 from autograd.core import primitive
 from autograd import elementwise_grad, grad
-
+try: 
+    from autograd.extend import primitive, defvjp  # defvjp is now a function
+except ImportError:
+    from autograd.core import primitive
+    defvjp = None
 
 def to_common_arr(x):
     return log_logistic_sigmoid(x)
@@ -62,12 +66,28 @@ def _log_logistic_sigmoid_not_vectorized(x_real):
 @primitive
 def log_logistic_sigmoid(x):
     return _log_logistic_sigmoid(x)
-if hasattr(primitive, 'defvjp'):
+
+# Definite gradient function via manual formula
+# Supporting different versions of autograd software
+if defvjp is not None:
+    # Latest version of autograd
+    def _vjp__log_logistic_sigmoid(ans, x):
+        def _my_gradient(g, x=x, ans=ans):
+            x = np.asarray(x)
+            return np.full(x.shape, g) * (1 - np.exp(ans))
+        return _my_gradient
+    defvjp(
+        log_logistic_sigmoid,
+        _vjp__log_logistic_sigmoid,
+        )
+elif hasattr(primitive, 'defvjp'):
+    # Slightly older version of autograd
     def _vjp__log_logistic_sigmoid(g, ans, vs, gvs, x):
         x = np.asarray(x)
         return np.full(x.shape, g) * (1 - np.exp(ans))
     log_logistic_sigmoid.defvjp(_vjp__log_logistic_sigmoid)
 else:
+    # Older version of autograd
     def _make_grad_product(ans, x):
         x = np.asarray(x)
         def grad_product(g):

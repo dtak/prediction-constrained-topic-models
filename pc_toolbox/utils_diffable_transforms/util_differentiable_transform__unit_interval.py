@@ -28,9 +28,14 @@ ValueError: The truth value of an array with more than one element is ambiguous.
 '''
 
 import autograd.numpy as np
+import autograd.extend
 from autograd.scipy.misc import logsumexp
-from autograd.core import primitive
 from autograd import elementwise_grad, grad
+try: 
+    from autograd.extend import primitive, defvjp  # defvjp is now a function
+except ImportError:
+    from autograd.core import primitive
+    defvjp = None
 
 MIN_VAL=1e-200
 MAX_VAL=1 - 1e-14
@@ -85,8 +90,19 @@ def _logistic_sigmoid_not_vectorized(x_real):
 
 
 # Definite gradient function via manual formula
-# Supporting different versions of autograd
-if hasattr(primitive, 'defvjp'):
+# Supporting different versions of autograd software
+if defvjp is not None:
+    # Latest version of autograd
+    def _vjp__logistic_sigmoid(ans, x):
+        def _my_gradient(g, x=x, ans=ans):
+            x = np.asarray(x)
+            return np.full(x.shape, g) * ans * (1.0 - ans)
+        return _my_gradient
+    defvjp(
+        logistic_sigmoid,
+        _vjp__logistic_sigmoid,
+        )
+elif hasattr(primitive, 'defvjp'):
     def _vjp__logistic_sigmoid(ans, g, vs, gvs, x):
         x = np.asarray(x)
         return np.full(x.shape, g) * ans * (1.0 - ans)

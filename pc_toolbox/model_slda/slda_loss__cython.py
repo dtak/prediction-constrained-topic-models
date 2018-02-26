@@ -1,7 +1,11 @@
-''' This is a fast version of loss computation
+"""
+slda_loss__cython.py
 
-Useful at eval time.
-'''
+Provides functions for computing loss function for PC sLDA objective.
+Uses fast Cython-ized implementation.
+
+Does NOT compute gradients, so cannot be used for training.
+"""
 
 import numpy as np
 from scipy.special import gammaln

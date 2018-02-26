@@ -2,7 +2,7 @@ import autograd.numpy as np
 
 from calc_nef_map_pi_d_K__defaults import DefaultDocTopicOptKwargs
 
-def calc_nef_map_pi_d_K__numpy(
+def calc_nef_map_pi_d_K__autograd(
         word_id_d_Ud=None,
         word_ct_d_Ud=None,
         topics_KUd=None,

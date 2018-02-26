@@ -22,8 +22,8 @@ import os
 from calc_nef_map_pi_d_K__defaults import DefaultDocTopicOptKwargs
 
 ## Load other modules
-from calc_nef_map_pi_d_K__numpy import (
-    calc_nef_map_pi_d_K__numpy)
+from calc_nef_map_pi_d_K__autograd import (
+    calc_nef_map_pi_d_K__autograd)
 
 from calc_nef_map_pi_d_K__numpy_linesearch import (
     calc_nef_map_pi_d_K__numpy_linesearch)
@@ -35,6 +35,7 @@ try:
     HAS_CYTHON = True
 except ImportError:
     HAS_CYTHON = False
+    calc_nef_map_pi_d_K__cython = None
 
 try:
     from calc_nef_map_pi_d_K__cython_linesearch import (
@@ -42,7 +43,7 @@ try:
     HAS_CYTHON_LINESEARCH = True
 except ImportError:
     HAS_CYTHON_LINESEARCH = False
-
+    calc_nef_map_pi_d_K__cython_linesearch = None
 
 def calc_nef_map_pi_d_K(
         word_id_d_Ud=None,
@@ -52,7 +53,7 @@ def calc_nef_map_pi_d_K(
         alpha=None,
         nef_alpha=None,
         init_pi_d_K=None,
-        method='numpy',
+        method='autograd',
         max_iters=DefaultDocTopicOptKwargs['max_iters'],
         converge_thr=DefaultDocTopicOptKwargs['converge_thr'],
         pi_step_size=DefaultDocTopicOptKwargs['pi_step_size'],
@@ -93,8 +94,8 @@ def calc_nef_map_pi_d_K(
         calc_pi_d_K = calc_nef_map_pi_d_K__cython
     elif method.count("numpy_linesearch"):
         calc_pi_d_K = calc_nef_map_pi_d_K__numpy_linesearch
-    elif method.count("numpy"):
-        calc_pi_d_K = calc_nef_map_pi_d_K__numpy
+    elif method.count("autograd"):
+        calc_pi_d_K = calc_nef_map_pi_d_K__autograd
     else:
         raise ValueError("Unrecognized pi_d_K estimation method:" + method)
     pi_d_K, info = calc_pi_d_K(
@@ -187,7 +188,7 @@ if __name__ == '__main__':
 
     for method in [
             'cython',
-            'numpy',
+            'autograd',
             #'linesearch_numpy',
             #'linesearch_cython',
             ]:

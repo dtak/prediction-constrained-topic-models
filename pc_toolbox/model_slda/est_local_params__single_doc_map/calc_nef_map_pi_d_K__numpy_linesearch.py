@@ -1,4 +1,4 @@
-import autograd.numpy as np
+import numpy as np
 
 from calc_nef_map_pi_d_K__defaults import DefaultDocTopicOptKwargs
 

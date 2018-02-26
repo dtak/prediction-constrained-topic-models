@@ -1,3 +1,9 @@
+"""
+slda_loss__autograd.py
+
+Provides functions for computing loss and gradient for PC training.
+"""
+
 import autograd
 import autograd.numpy as np
 from autograd.scipy.special import gammaln
@@ -8,24 +14,20 @@ from pc_toolbox.utils_diffable_transforms import (
     logistic_sigmoid,
     )
 
-from slda_dataset_manager import (
+from slda_utils__dataset_manager import (
     load_dataset,
     slice_dataset,
     )
-from slda_param_manager import (
-    init_param_dict,
-    unflatten_to_param_dict,
-    flatten_to_differentiable_param_vec,
-    )
-
-from slda_eval_manager import calc_eval_metrics_for_snapshot
-
+#from slda_utils__param_manager import (
+#    init_param_dict,
+#    unflatten_to_param_dict,
+#    flatten_to_differentiable_param_vec,
+#    )
 from est_local_params__single_doc_map import (
     calc_nef_map_pi_d_K__numpy,
     DefaultDocTopicOptKwargs)
-
-from est_local_params__many_doc_map import (
-    make_readable_summary_for_pi_DK_inference)
+#from est_local_params__many_doc_map import (
+#    make_readable_summary_for_pi_DK_inference)
 
 def make_loss_func_and_grad_func(
         dataset=None,
