@@ -70,22 +70,9 @@ def calc_nef_map_pi_d_K(
     K = topics_KUd.shape[0]
 
     # Parse alpha into natural EF alpha (so estimation is always convex)
-    if nef_alpha is not None:
-        nef_alpha = float(nef_alpha)
-    elif alpha is not None:
-        nef_alpha = float(alpha)
-    else:
-        raise ValueError("Need to define alpha or nef_alpha")
-    assert isinstance(nef_alpha, float)
-
-    # Now translate into convex_alpha_minus_1
-    if nef_alpha > 1.0:
-        convex_alpha_minus_1 = nef_alpha - 1.0
-    else:
-        convex_alpha_minus_1 = nef_alpha
-    # These are unused below. Lets be sure of that.
-    alpha = None     # unused below
-    nef_alpha = None # unused below
+    convex_alpha_minus_1 = make_convex_alpha(
+        alpha=alpha,
+        nef_alpha=nef_alpha)
     assert convex_alpha_minus_1 < 1.0
     assert convex_alpha_minus_1 >= 0.0
 
@@ -126,6 +113,29 @@ def calc_nef_map_pi_d_K(
         **kwargs)
     return pi_d_K, info
 
+
+def make_convex_alpha(alpha=None, nef_alpha=None):
+    """ Convert provided alpha into its equivalent for convex MAP problem
+
+    Returns
+    -------
+    convex_alpha_minus_1 : float
+        will always be between 0 and 1
+    """
+    if nef_alpha is not None:
+        nef_alpha = float(nef_alpha)
+    elif alpha is not None:
+        nef_alpha = float(alpha)
+    else:
+        raise ValueError("Need to define alpha or nef_alpha")
+    assert isinstance(nef_alpha, float)
+
+    # Now translate into convex_alpha_minus_1
+    if nef_alpha > 1.0:
+        convex_alpha_minus_1 = nef_alpha - 1.0
+    else:
+        convex_alpha_minus_1 = nef_alpha
+    return convex_alpha_minus_1
 
 
 if __name__ == '__main__':

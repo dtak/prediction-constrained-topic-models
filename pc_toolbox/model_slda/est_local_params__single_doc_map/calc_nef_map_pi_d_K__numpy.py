@@ -103,5 +103,3 @@ def calc_nef_map_pi_d_K__numpy(
         pi_step_size=pi_step_size,
         min_pi_step_size=min_pi_step_size,
         convex_alpha_minus_1=convex_alpha_minus_1)
-
-
