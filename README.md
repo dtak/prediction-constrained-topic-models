@@ -3,4 +3,4 @@ Public repo containing code to train, visualize, and evaluate semi-supervised to
 
 # Announcements
 
-Feb 2018: Content coming soon. Please check back by Feb 25, 2018.
+Feb 2018: Content coming soon. Please check back by March 8, 2018.

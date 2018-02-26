@@ -1,0 +1,9 @@
+needle
+finance
+tech
+river
+bank
+stream
+mineral
+gold
+silicon
