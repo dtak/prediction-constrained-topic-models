@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+#BSUB -J $XHOST_JOB_NAME[$XHOST_FIRSTTASK-$XHOST_NTASKS]
+#BSUB -o $XHOST_LOG_DIR/%J.%I.out
+#BSUB -e $XHOST_LOG_DIR/%J.%I.err
+#BSUB -R "rusage[mem=$XHOST_MEM_MB,swp=$XHOST_SWP_MB]"
+#BSUB -q $XHOST_MACHINE_NAME
+
+bash $XHOST_BASH_EXE
+

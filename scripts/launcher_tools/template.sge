@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+#$ -cwd
+#$ -S /bin/bash
+#$ -o $XHOST_LOG_DIR/$JOB_ID.$TASK_ID.out
+#$ -e $XHOST_LOG_DIR/$JOB_ID.$TASK_ID.err
+#$ -V
+#$ -t $XHOST_FIRSTTASK-$XHOST_NTASKS
+#$ -q '*@@$XHOST_MACHINE_NAME'
+#$ -l vf=$XHOST_MEM_MBM
+#$ -l h_rt=$XHOST_TIME_HR:00:00
+
+bash $XHOST_BASH_EXE
