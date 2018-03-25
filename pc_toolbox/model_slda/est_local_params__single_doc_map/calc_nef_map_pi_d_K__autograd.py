@@ -15,8 +15,8 @@ def calc_nef_map_pi_d_K__autograd(
         pi_step_size=DefaultDocTopicOptKwargs['pi_step_size'],
         pi_min_step_size=DefaultDocTopicOptKwargs['pi_min_step_size'],
         pi_step_decay_rate=DefaultDocTopicOptKwargs['pi_step_decay_rate'],
-        pi_min_mass_preserved_to_trust_step=\
-            DefaultDocTopicOptKwargs['pi_min_mass_preserved_to_trust_step'],
+        pi_min_mass_preserved_to_trust_step=(
+            DefaultDocTopicOptKwargs['pi_min_mass_preserved_to_trust_step']),
         **kwargs):
     ''' Find MAP estimate of the K-dim. proba vector for specific document.
 
