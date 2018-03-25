@@ -28,6 +28,15 @@ from calc_nef_map_pi_d_K__autograd import (
 from calc_nef_map_pi_d_K__numpy_linesearch import (
     calc_nef_map_pi_d_K__numpy_linesearch)
 
+# Try to load tensorflow code
+# Fall back on python
+try:
+    from calc_nef_map_pi_d_K__tensorflow import calc_nef_map_pi_d_K__tensorflow
+    HAS_TENSORFLOW = True
+except ImportError:
+    HAS_TENSORFLOW = False
+    calc_nef_map_pi_d_K__tensorflow = None
+
 # Try to load cython code
 # Fall back on python code
 try:
@@ -36,7 +45,6 @@ try:
 except ImportError:
     HAS_CYTHON = False
     calc_nef_map_pi_d_K__cython = None
-
 try:
     from calc_nef_map_pi_d_K__cython_linesearch import (
         calc_nef_map_pi_d_K__cython_linesearch)
@@ -96,6 +104,10 @@ def calc_nef_map_pi_d_K(
         calc_pi_d_K = calc_nef_map_pi_d_K__cython
     elif method.count("numpy_linesearch"):
         calc_pi_d_K = calc_nef_map_pi_d_K__numpy_linesearch
+    elif method.count("tensorflow"):
+        if not HAS_TENSORFLOW:
+            raise ImportError("No tensorflow")
+        calc_pi_d_K = calc_nef_map_pi_d_K__tensorflow
     elif method.count("autograd"):
         calc_pi_d_K = calc_nef_map_pi_d_K__autograd
     else:
@@ -143,7 +155,7 @@ def make_convex_alpha_minus_1(alpha=None, nef_alpha=None):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--K', type=int, default=50)
+    parser.add_argument('--K', type=int, default=5)
     parser.add_argument('--Ud', type=int, default=100)
     parser.add_argument('--nef_alpha', type=float, default=1.1)
     parser.add_argument(
@@ -190,6 +202,7 @@ if __name__ == '__main__':
         print "%-50s %s" % (key, lstep_kwargs[key])
 
     for method in [
+            'tensorflow',
             'cython',
             'autograd',
             #'linesearch_numpy',
