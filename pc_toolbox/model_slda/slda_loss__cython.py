@@ -2,123 +2,60 @@
 slda_loss__cython.py
 
 Provides functions for computing loss function for PC sLDA objective.
-Uses fast Cython-ized implementation.
+Uses fast Cython-ized implementation of the local (per-document) step.
 
-Does NOT compute gradients, so cannot be used for training.
+Does NOT compute gradients (not autodiff-able), so cannot be used for training.
 """
 
 import numpy as np
 from scipy.special import gammaln
+import time
 
-from sscape.utils_data import make_slice_for_step
-from sscape.utils_io import pprint
-from slda__base import (
-    load_dataset,
-    slice_dataset,
-    init_param_dict,
-    unflatten_to_param_dict,
-    flatten_to_differentiable_param_vec,
+from pc_toolbox.utils_diffable_transforms import (
+    log_logistic_sigmoid,
+    logistic_sigmoid,
+    )
+from est_local_params__single_doc_map import (
+    calc_nef_map_pi_d_K,
+    make_convex_alpha_minus_1,
+    DefaultDocTopicOptKwargs)
+from est_local_params__many_doc_map import (
+    make_readable_summary_for_pi_DK_estimation,
     )
 
-from calc_single_doc_pi_d_K__fast_nefmap import \
-    calc_single_doc_pi_d_K
-from calc_super_single_doc_pi_d_K__linesearch import \
-    calc_super_single_doc_pi_d_K
-
-from calc_topic_probas_for_single_doc import \
-    calc_topic_probas_for_single_doc, DefaultDocTopicOptKwargs
-from calc_topic_probas_for_many_docs import calc_pi_DK_for_many_docs
-from trans_util_log_unit_interval import log_logistic_sigmoid
-from trans_util_unit_interval import logistic_sigmoid
-from util_make_readable_summary import make_readable_summary_for_pi_DK_inference
-
-def extract_features(**kwargs):
-    from lda_feat_extractor import extract_features as _extract
-    return _extract(**kwargs)
-
-def calc_neg_log_proba__slda(
+def calc_loss__slda(
         dataset=None,
         topics_KV=None,
         w_CK=None,
-        param_vec=None,
-        include_norm_const=True,
-        rescale_divide_by_num_obs=True,
-        rescale_y_to_match_x=False,
+        alpha=None,
+        nef_alpha=1.1,
+        tau=1.1,
+        delta=0.1,
+        lambda_w=0.001,
         weight_x=1.0,
         weight_y=1.0,
-        alpha=None,
-        nef_alpha=None,
-        tau=None,
-        delta=None,
-        lambda_w=None,
+        weight_pi=1.0,
         return_dict=False,
+        rescale_total_loss_by_n_tokens=True,
         pi_estimation_mode='missing_y',
-        pi_estimation_weight_y=0.0,
-        do_fast=True,
-        LP=None,
-        verbose=False,
+        active_proba_thr=0.005,
+        fixed_pi_DK=None,
         **kwargs):
-    ''' Compute log probability of bow dataset under topic model.
+    ''' Compute loss of provided dataset under sLDA topic model.
 
     Returns
     -------
-    log_proba : Total log probability of dataset under provided sLDA model.
-        Scaled by number of word tokens in the dataset.
+    loss : float
+        Total loss (-1 * log proba.) of dataset under provided sLDA model.
+        By default, rescaled by number of word tokens in the dataset.
     '''
-    # Parse smoothing parameter
-    # Force to use nef formulation (always > 1.0 for convexity)
-    if nef_alpha is not None:
-        nef_alpha = float(nef_alpha)
-    elif alpha is not None:
-        nef_alpha = float(alpha)
-    else:
-        raise ValueError("Need to define alpha or nef_alpha")    
-    alpha = None
-    assert alpha is None
-    assert isinstance(nef_alpha, float)
-    if nef_alpha < 1.0:
-        nef_alpha = nef_alpha + 1.0
-    assert nef_alpha >= 1.0
-    assert nef_alpha <  2.0
-
-    if verbose:
-        msg = ">>> fastloss calc_neg_log_proba %s  nef_alpha %.4f"
-        msg += " w_y %.3f  pi_w_y %d x %.3f"
-        pprint(msg % (
-            pi_estimation_mode, nef_alpha, weight_y,
-            (pi_estimation_mode == 'observe_y'), pi_estimation_weight_y))
-
-    # cur_pi_DK is the pretrained pi_DK
-    # pi_DK is something else (the one we fill in, if needed)
-    cur_pi_DK = None
-    if isinstance(LP, dict) and 'cur_pi_DK' in LP:
-        cur_pi_DK = LP['cur_pi_DK']
-    else:
-        func_for_single_doc = calc_topic_probas_for_single_doc
-        if do_fast:
-            func_for_single_doc = calc_single_doc_pi_d_K
-
-    # Process hyperparams
-    # if they are unset, just mark as None and let later code complain
-    try:
-        delta = float(delta)
-    except TypeError:
-        delta = None
-    try:
-        tau = float(tau)
-        if tau < 1.0:
-            tau += 1.0
-    except TypeError:
-        tau = None
-    try:
-        lambda_w = float(lambda_w)
-    except TypeError:
-        lambda_w = None
-
-    if param_vec is not None:
-        param_dict = unflatten_to_param_dict(param_vec, **kwargs)
-        topics_KV = param_dict['topics_KV']
-        w_CK = param_dict['w_CK']
+    # Parse hyperparams
+    delta = float(delta)
+    tau = float(tau)
+    lambda_w = float(lambda_w)
+    convex_alpha_minus_1 = make_convex_alpha_minus_1(alpha=alpha, nef_alpha=nef_alpha)
+    assert convex_alpha_minus_1 >= 0.0
+    assert convex_alpha_minus_1 < 1.0
 
     n_docs = int(dataset['n_docs'])
     n_labels = int(dataset['n_labels'])
@@ -134,25 +71,23 @@ def calc_neg_log_proba__slda(
         output_data_type = 'real'
     K = w_CK.shape[1]
 
-    avg_log_proba_x = 0.0
-    avg_log_proba_y = 0.0
-    avg_log_proba_pi = 0.0 
 
     if return_dict:
+        start_time_sec = time.time()
         pi_DK = np.zeros((n_docs, K))
         n_docs_converged = 0
         n_docs_restarted = 0
-        dist_per_doc = np.zeros(n_docs, dtype=np.float64)
-        step_size_per_doc = np.zeros(n_docs, dtype=np.float64)
         iters_per_doc = np.zeros(n_docs, dtype=np.int32)
+        dist_per_doc = np.zeros(n_docs, dtype=np.float32)
+        step_size_per_doc = np.zeros(n_docs, dtype=np.float32)
         n_active_per_doc = np.zeros(n_docs, dtype=np.int32)
         restarts_per_doc = np.zeros(n_docs, dtype=np.int32)
-    if return_dict and weight_y > 0:
         y_proba_DC = np.zeros((n_docs, n_labels))
 
-    # Skip norm const
-    # avg_log_proba_pi = n_docs * (
-    #    gammaln(K * alpha) - K * gammaln(alpha))
+    # Aggregators for different loss terms
+    loss_x = 0.0
+    loss_y = 0.0
+    loss_pi = 0.0 
     for d in xrange(n_docs):
         start_d = dataset['doc_indptr_Dp1'][d]
         stop_d = dataset['doc_indptr_Dp1'][d+1]
@@ -163,82 +98,76 @@ def calc_neg_log_proba__slda(
         y_d_is_missing = \
             'y_rowmask' in dataset and dataset['y_rowmask'][d] == 0
 
-        if cur_pi_DK is not None:
+        if fixed_pi_DK is not None:
             if d == 0: pprint('using precomputed cur_pi_DK from LP')
             pi_d_K = cur_pi_DK[d]
-            info_dict = dict(
+            info_d = dict(
                 n_restarts=0,
                 did_converge=0,
+                cur_L1_diff=0.0,
                 pi_step_size=0.0,
                 n_iters=0)
         elif pi_estimation_mode == 'missing_y' or y_d_is_missing:
             # THIS CALL IS ALWAYS UNSUPERVISED!
-            pi_d_K, info_dict = \
-                func_for_single_doc(
+            pi_d_K, info_d = \
+                calc_nef_map_pi_d_K(
                     word_id_d_U,
                     word_ct_d_U,
                     topics_KV=topics_KV,
-                    alpha=None,
-                    nef_alpha=nef_alpha,
-                    **kwargs)
+                    convex_alpha_minus_1=convex_alpha_minus_1,
+                    method='cython',
+                    )
         elif pi_estimation_mode == 'observe_y':
             # THIS CALL IS SUPERVISED!
-            pi_d_K, info_dict = \
-                calc_super_single_doc_pi_d_K(
+            pi_d_K, info_d = \
+                calc_super_nef_map_pi_d_K__cython(
                     word_id_d_U,
                     word_ct_d_U,
                     topics_KV=topics_KV,
-                    alpha=None,
-                    nef_alpha=nef_alpha,
+                    convex_alpha_minus_1=convex_alpha_minus_1,
                     y_d_C=np.asarray(dataset['y_DC'][d], dtype=np.int32),
                     w_CK=w_CK,
                     weight_y=float(pi_estimation_weight_y),
-                    **kwargs)
+                    )
         else:
-            raise ValueError("Unrecognized pi_estimation_mode: %s" % (
-                pi_estimation_mode))
+            raise ValueError(
+                "Unrecognized pi_estimation_mode: %s" % (
+                    pi_estimation_mode))
 
         if return_dict:
             pi_DK[d] = pi_d_K
-            n_active_per_doc[d] = np.sum(pi_d_K > 0.005)
-            n_docs_restarted += info_dict['n_restarts'] > 0
-            n_docs_converged += info_dict['did_converge']
-            iters_per_doc[d] = info_dict['n_iters']
-            step_size_per_doc[d] = info_dict['pi_step_size']
-            try:
-                dist_per_doc[d] = info_dict['cur_L1_diff']
-            except KeyError:
-                dist_per_doc = None
-            try:
-                restarts_per_doc[d] = info_dict['n_restarts']
-            except KeyError:
-                restarts_per_doc = None
-
-        log_proba_x_d = np.inner(
+            n_active_per_doc[d] = np.sum(pi_d_K > active_proba_thr)
+            n_docs_restarted += info_d['n_restarts'] > 0
+            n_docs_converged += info_d['did_converge']
+            iters_per_doc[d] = info_d['n_iters']
+            step_size_per_doc[d] = info_d['pi_step_size']
+            dist_per_doc[d] = info_d.get('cur_L1_diff', -1.0)
+            restarts_per_doc[d] = info_d.get('n_restarts', -1)
+        
+        # LOSS due to x
+        logpdf_x_d = np.inner(
             word_ct_d_U,
             np.log(np.dot(pi_d_K, topics_KV[:, word_id_d_U])))
-        log_proba_x_d += \
+        logpdf_x_d += \
             gammaln(1.0 + np.sum(word_ct_d_U)) - \
             np.sum(gammaln(1.0 + word_ct_d_U))
-        avg_log_proba_x += weight_x * log_proba_x_d
+        loss_x -= weight_x * logpdf_x_d
+
+        # LOSS due to pi
+        loss_pi -= weight_pi * np.sum(
+            (convex_alpha_minus_1) * np.log(1e-9 + pi_d_K))
             
-        avg_log_proba_pi += np.sum(
-            (nef_alpha - 1.0) * np.log(1e-9 + pi_d_K))
+
+        # Semi-supervised case: skip examples with unknown labels
         if y_d_is_missing:
             y_proba_DC[d] = np.nan
             continue
         if weight_y > 0 and output_data_type == 'binary':
-            if rescale_y_to_match_x:
-                weight_y_d = weight_y * np.sum(word_ct_d_U)
-            else:
-                weight_y_d = weight_y
             y_d_C = dataset['y_DC'][d]
             sign_y_d_C = np.sign(y_d_C - 0.01)
-            log_proba_y_d_C = log_logistic_sigmoid(
-                sign_y_d_C * np.dot(w_CK, pi_d_K))
-            log_proba_y_d = np.sum(log_proba_y_d_C)
-            avg_log_proba_y += weight_y_d * log_proba_y_d
-
+            logpdf_y_d = np.sum(log_logistic_sigmoid(
+                sign_y_d_C * np.dot(w_CK, pi_d_K)))
+            loss_y -= weight_y * logpdf_y_d
             if return_dict:
                 proba_y_eq_1_d_C = logistic_sigmoid(
                     np.dot(w_CK, pi_d_K))
@@ -246,78 +175,111 @@ def calc_neg_log_proba__slda(
         if weight_y > 0 and output_data_type == 'real':
             y_d_C = dataset['y_DC'][d]
             y_est_d_C = np.dot(w_CK, pi_d_K)
-            log_proba_y_d = -0.5 / delta * np.sum(np.square(y_est_d_C - y_d_C))
-            avg_log_proba_y += weight_y * log_proba_y_d
+            logpdf_y_d = -0.5 / delta * np.sum(
+                np.square(y_est_d_C - y_d_C))
+            loss_y -= weight_y * logpdf_y_d
             if return_dict:
                 y_proba_DC[d] = y_est_d_C
-    # topics_KV is guaranteed to be >= min_eps
-    log_proba_topics = \
-        (tau - 1) * np.sum(np.log(topics_KV))
-    log_proba_w = \
-        -1.0 * weight_y * lambda_w * np.sum(np.square(w_CK))
-    scale_y = 1.0
-    if rescale_divide_by_num_obs:
-        scale = float(np.sum(dataset['word_ct_U']))
-        _, C = dataset['y_DC'].shape
-        avg_log_proba_x = avg_log_proba_x / scale
-        avg_log_proba_pi = avg_log_proba_pi / scale
-        log_proba_topics /= scale
-        log_proba_w /= scale
+    # ... end loop over docs
 
+    # GLOBAL PARAM REGULARIZATION TERMS
+    # Loss for topic-word params
+    loss_topics = \
+        -1.0 * (tau - 1) * np.sum(np.log(topics_KV))
+
+    # Loss for regression weights
+    # Needs to scale with weight_y so lambda_w doesnt grow as weight_y grows
+    loss_w = \
+        float(weight_y) * lambda_w * np.sum(np.square(w_CK))
+
+    # RESCALING LOSS TERMS
+    if rescale_total_loss_by_n_tokens:
+        scale_ttl = float(np.sum(dataset['word_ct_U']))
+    else:
+        scale_ttl = 1.0
+    loss_x /= scale_ttl
+    loss_pi /= scale_ttl
+    loss_topics /= scale_ttl
+    loss_w /= scale_ttl
+    loss_y /= scale_ttl
+    # TOTAL LOSS
+    loss_ttl = loss_x + loss_y + loss_pi + loss_topics + loss_w
+
+        
+    if return_dict:
+        # Compute unweighted loss
+        uw_x = np.maximum(weight_x, 1.0)
+        uloss_x__pertok = loss_x * scale_ttl / float(
+            uw_x * np.sum(dataset['word_ct_U']))
+
+        uw_y = np.maximum(weight_y, 1.0)
+        n_y_docs, C = dataset['y_DC'].shape
+        n_y_docs = 1e-10 + float(n_y_docs)
         if 'y_rowmask' in dataset:
             n_y_docs = 1e-10 + float(np.sum(dataset['y_rowmask']))
-        else:
-            n_y_docs = float(n_docs)
-        if rescale_y_to_match_x:
-            scale_y = 1.0
-            avg_log_proba_y = avg_log_proba_y / scale
-        else:
-            scale_y = float(C * n_y_docs) / scale
-            avg_log_proba_y = avg_log_proba_y / (C * n_y_docs)
+        uloss_y__perdoc = loss_y * scale_ttl / float(
+            uw_y * C * n_y_docs)
 
-    if return_dict:
         ans_dict = dict(
-            loss_x=-1.0 * avg_log_proba_x,
-            loss_y=-1.0 * avg_log_proba_y,
-            loss_pi=-1.0 * avg_log_proba_pi,
-            loss_topics=-1.0 * log_proba_topics,
-            loss_w=-1.0 * log_proba_w,
-            scale=scale,
-            scale_y=scale_y,
-            pi_DK=pi_DK,
+            loss_ttl=loss_ttl,
+            loss_x=loss_x,
+            loss_y=loss_y,
+            loss_pi=loss_pi,
+            loss_topics=loss_topics,
+            loss_w=loss_w,
+            rescale_total_loss_by_n_tokens=rescale_total_loss_by_n_tokens,
+            uloss_x__pertok=uloss_x__pertok,
+            uloss_y__perdoc=uloss_y__perdoc,
             output_data_type=output_data_type,
-            summary_msg=make_readable_summary_for_pi_DK_inference(
+            pi_DK=pi_DK,
+            y_proba_DC=y_proba_DC,
+            n_docs_converged=n_docs_converged,
+            n_docs_restarted=n_docs_restarted,
+            iters_per_doc=iters_per_doc,
+            dist_per_doc=dist_per_doc,
+            step_size_per_doc=step_size_per_doc,
+            n_active_per_doc=n_active_per_doc,
+            summary_msg=make_readable_summary_for_pi_DK_estimation(
+                elapsed_time_sec=time.time() - start_time_sec,
                 n_docs=n_docs,
-                n_docs_completed=n_docs,
                 n_docs_converged=n_docs_converged,
                 n_docs_restarted=n_docs_restarted,
                 iters_per_doc=iters_per_doc,
-                n_active_per_doc=n_active_per_doc,
                 dist_per_doc=dist_per_doc,
-                restarts_per_doc=restarts_per_doc,
                 step_size_per_doc=step_size_per_doc,
+                restarts_per_doc=restarts_per_doc,
+                n_active_per_doc=n_active_per_doc,
                 ),
-            iters_per_doc=iters_per_doc,
-            n_active_per_doc=n_active_per_doc,
-            dist_per_doc=dist_per_doc,
-            restarts_per_doc=restarts_per_doc,
-            step_size_per_doc=step_size_per_doc,
             )
-        ans_dict['loss_all'] = 0.0
-        for key in ans_dict:
-            if key.startswith('loss'):
-                skey = 'scale_' + key.replace('loss_', '')
-                if skey in ans_dict:
-                    ans_dict['loss_all'] += ans_dict[skey] * ans_dict[key]
-                else:
-                    ans_dict['loss_all'] += ans_dict[key]                    
-        if return_dict and weight_y > 0:
-            ans_dict['y_proba_DC'] = y_proba_DC
         return ans_dict
     else:
-        return -1.0 * (
-            avg_log_proba_x + avg_log_proba_pi 
-            + scale_y * avg_log_proba_y
-            + log_proba_topics
-            + log_proba_w
-            )
+        return loss_ttl
+
+
+if __name__ == '__main__':
+    import os
+    from sklearn.externals import joblib
+    from slda_utils__dataset_manager import load_dataset
+
+    # Simplest possible test
+    # Load the toy bars dataset
+    # Load "true" bars topics
+    # Compute the loss
+    dataset_path = os.path.expandvars("$PC_REPO_DIR/datasets/toy_bars_3x3/")
+    dataset = load_dataset(dataset_path, split_name='train')
+
+    # Load "true" 4 bars
+    GP = joblib.load(
+        os.path.join(dataset_path, "good_loss_x_K4_param_dict.dump"))
+    topics_KV = GP['topics_KV']
+    w_CK = GP['w_CK']
+
+    loss_dict = calc_loss__slda(
+        dataset=dataset,
+        topics_KV=topics_KV,
+        w_CK=w_CK,
+        nef_alpha=1.1,
+        tau=1.1,
+        lambda_w=0.001,
+        return_dict=True)
+    print(loss_dict['summary_msg'])

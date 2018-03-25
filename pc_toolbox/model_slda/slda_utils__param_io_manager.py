@@ -5,7 +5,45 @@ import scipy.sparse
 from distutils.dir_util import mkpath
 from sklearn.externals import joblib
 
-def load_param_dict_from_topic_model_snapshot(
+from pc_toolbox.utils_io import update_symbolic_link
+
+def save_topic_model_param_dict(
+        param_dict,
+        output_path=None,
+        param_output_fmt='dump',
+        disable_output=False,
+        **alg_state_kwargs):
+    """ Save snapshot of topic model parameters to disk
+
+    Returns
+    -------
+    snapshot_path : path to where results were saved.
+    """
+    snapshot_path = None
+    if output_path is not None and (not disable_output):
+        cur_lap = alg_state_kwargs['cur_lap']
+        if param_output_fmt.count('dump'):
+            best_filepath = os.path.join(
+                output_path, 'best_param_dict.dump')
+            cur_filepath = os.path.join(
+                output_path, 'lap%011.3f_param_dict.dump' % (cur_lap))
+            joblib.dump(param_dict, cur_filepath, compress=1)
+            update_symbolic_link(cur_filepath, best_filepath)
+
+        if param_output_fmt.count('topic_model_snapshot'):
+            prefix = 'lap%011.3f' % cur_lap
+            snapshot_path = save_topic_model_params_as_txt_files(
+                output_path,
+                prefix, 
+                **param_dict)
+            best_path = snapshot_path.replace(prefix, 'best')
+            if best_path.count('best') > 0:
+                update_symbolic_link(snapshot_path, best_path)
+            else:
+                raise ValueError("Bad path: " + snapshot_path)
+    return snapshot_path
+
+def load_topic_model_param_dict(
         snapshot_path=None,
         task_path=None,
         prefix='best',
@@ -13,7 +51,9 @@ def load_param_dict_from_topic_model_snapshot(
         w_txt_basename='w_CK.txt',
         add_bias_term_to_w_CK=0.0,
         **kwargs):
-    ''' Load topic model parameters from txt snapshot folder
+    ''' Load topic model parameters from disk.
+
+    Supports either dump file or folder of txt files
 
     Returns
     -------
@@ -105,7 +145,7 @@ def load_param_dict_from_topic_model_snapshot(
         alpha=alpha,
         lambda_w=lambda_w)
 
-def save_topic_model_snapshot(
+def save_topic_model_params_as_txt_files(
         output_path=None,
         prefix='',
         topics_KV=None,

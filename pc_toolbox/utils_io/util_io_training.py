@@ -5,8 +5,6 @@ import time
 import psutil
 from sklearn.externals import joblib
 
-from util_io_topic_snapshot import save_topic_model_snapshot
-
 default_settings_alg_io = None
 
 def is_lap_in_custom_str(
@@ -199,56 +197,6 @@ def update_alg_state_kwargs_after_save(
     return alg_state_kwargs
 
 
-# Function to save current params at every step
-def save_params_to_disk_and_callback(
-        param_dict,
-        callback=None,
-        callback_kwargs=None,
-        output_path=None,
-        snapshot_nickname=None,
-        param_output_fmt='dump',
-        disable_output=False,
-        **alg_state_kwargs):
-    snapshot_path = None
-    if output_path is not None and (not disable_output):
-        cur_lap = alg_state_kwargs['cur_lap']
-        if param_output_fmt.count('dump'):
-            best_filepath = os.path.join(
-                output_path, 'best_param_dict.dump')
-            cur_filepath = os.path.join(
-                output_path, 'lap%011.3f_param_dict.dump' % (cur_lap))
-            joblib.dump(param_dict, cur_filepath, compress=1)
-            update_symbolic_link(cur_filepath, best_filepath)
-            if snapshot_nickname is not None:
-                if not snapshot_nickname.endswith('dump'):
-                    snapshot_nickname = snapshot_nickname + ".dump"
-                nick_filepath = os.path.join(
-                    output_path, str(snapshot_nickname))
-                update_symbolic_link(cur_filepath, nick_filepath)
-
-        if param_output_fmt.count('topic_model_snapshot'):
-            prefix = 'lap%011.3f' % cur_lap
-            snapshot_path = save_topic_model_snapshot(
-                output_path,
-                prefix, 
-                **param_dict)
-            best_path = snapshot_path.replace(prefix, 'best')
-            if best_path.count('best') > 0:
-                update_symbolic_link(snapshot_path, best_path)
-            else:
-                raise ValueError("Bad path: " + snapshot_path)
-
-    if callback:
-        if callback_kwargs is None:
-            callback_kwargs = dict()
-        callback_kwargs.update(alg_state_kwargs)
-        callback_kwargs['param_dict'] = param_dict
-        #callback_kwargs.update(param_dict)
-        callback_kwargs['snapshot_path'] = snapshot_path
-        callback_kwargs['disable_output'] = disable_output
-        return callback(
-            **callback_kwargs)
-
 def save_status_to_txt_files(
         cur_lap=0.0,
         cur_step=0.0,
@@ -355,7 +303,7 @@ def make_status_string(
 def getMemUsageOfCurProcess_MiB(field='rss'):
     # return the memory usage in MB
     process = psutil.Process(os.getpid())
-    mem = getattr(process.memory_info_ex(), field)
+    mem = getattr(process.memory_info(), field)
     mem_MiB = mem / float(2 ** 20)
     return mem_MiB
 
@@ -374,11 +322,53 @@ def append_to_txtfile(
 
 def update_symbolic_link(hardfile, linkfile):
     if linkfile.endswith(os.path.sep):
-        linkfile = linkfile[:-1]
+        linkfile = linkfile[:-len(os.path.sep)]
     if os.path.islink(linkfile):
         os.unlink(linkfile)
     if os.path.exists(linkfile):
         os.remove(linkfile)
     if os.path.exists(hardfile):
-        # TODO: Handle windows os case
+        # TODO: Handle Windows os case
         os.symlink(hardfile, linkfile)
+
+def calc_laps_when_snapshots_saved(
+        n_batches=1,
+        n_laps=1,
+        return_str=False,
+        n_keep_left=5,
+        n_keep_right=5,
+        **alg_state_kwargs):
+    alg_state_kws = dict(**alg_state_kwargs)
+    alg_state_kws['cur_step'] = 0
+    alg_state_kws['n_batches'] = int(n_batches)
+    alg_state_kws['n_laps'] = float(n_laps)
+    alg_state_kws = init_alg_state_kwargs(**alg_state_kws)
+    n_steps = alg_state_kws['n_steps']
+    do_save_laps = list()
+    do_save_steps = list()
+    for step_id in range(0, n_steps + 1):
+        if do_save_now(**alg_state_kws):
+            do_save_laps.append(alg_state_kws['cur_lap'])
+            do_save_steps.append(alg_state_kws['cur_step'])
+        alg_state_kws = update_alg_state_kwargs(**alg_state_kws)
+    if n_keep_left > 0 and n_keep_right > 0:
+        do_save_laps = np.unique(np.hstack([
+            do_save_laps[:n_keep_left],
+            do_save_laps[-n_keep_right:]])).tolist()
+        do_save_steps = np.unique(np.hstack([
+            do_save_steps[:n_keep_left],
+            do_save_steps[-n_keep_right:]])).tolist()
+    if return_str:
+        steps_str = ','.join(['%6d' % a for a in do_save_steps])
+        laps_str  = ','.join(['%6.3g' % a for a in do_save_laps])
+        return laps_str, steps_str
+    else:
+        return do_save_laps, do_save_steps
+
+if __name__ == '__main__':
+    do_save_laps = calc_laps_when_snapshots_saved(
+        n_batches=1,
+        n_laps=20,
+        n_steps_between_save=5,
+        laps_to_save_custom='1,3,5,7,11,13,17,19')
+    print do_save_laps

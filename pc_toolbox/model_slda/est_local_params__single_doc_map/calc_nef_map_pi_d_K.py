@@ -52,15 +52,16 @@ def calc_nef_map_pi_d_K(
         topics_KV=None,
         alpha=None,
         nef_alpha=None,
+        convex_alpha_minus_1=None,
         init_pi_d_K=None,
         method='autograd',
-        max_iters=DefaultDocTopicOptKwargs['max_iters'],
-        converge_thr=DefaultDocTopicOptKwargs['converge_thr'],
+        pi_max_iters=DefaultDocTopicOptKwargs['pi_max_iters'],
+        pi_converge_thr=DefaultDocTopicOptKwargs['pi_converge_thr'],
         pi_step_size=DefaultDocTopicOptKwargs['pi_step_size'],
-        min_pi_step_size=DefaultDocTopicOptKwargs['min_pi_step_size'],
+        pi_min_step_size=DefaultDocTopicOptKwargs['pi_min_step_size'],
         pi_step_decay_rate=DefaultDocTopicOptKwargs['pi_step_decay_rate'],
-        pi_min_mass_preserved_to_trust_step=\
-            DefaultDocTopicOptKwargs['pi_min_mass_preserved_to_trust_step'],
+        pi_min_mass_preserved_to_trust_step=(
+            DefaultDocTopicOptKwargs['pi_min_mass_preserved_to_trust_step']),
         **kwargs):
     # Common preprocessing
     if topics_KUd is None:
@@ -71,9 +72,10 @@ def calc_nef_map_pi_d_K(
     K = topics_KUd.shape[0]
 
     # Parse alpha into natural EF alpha (so estimation is always convex)
-    convex_alpha_minus_1 = make_convex_alpha(
-        alpha=alpha,
-        nef_alpha=nef_alpha)
+    if convex_alpha_minus_1 is None:
+        convex_alpha_minus_1 = make_convex_alpha_minus_1(
+            alpha=alpha,
+            nef_alpha=nef_alpha)
     assert convex_alpha_minus_1 < 1.0
     assert convex_alpha_minus_1 >= 0.0
 
@@ -104,18 +106,18 @@ def calc_nef_map_pi_d_K(
         word_ct_d_Ud=np.asarray(word_ct_d_Ud, dtype=np.float64),
         ct_topics_KUd=ct_topics_KUd,
         convex_alpha_minus_1=convex_alpha_minus_1,
-        max_iters=int(max_iters),
+        pi_max_iters=int(pi_max_iters),
         pi_step_size=float(pi_step_size),
-        min_pi_step_size=float(min_pi_step_size),
+        pi_min_step_size=float(pi_min_step_size),
         pi_step_decay_rate=float(pi_step_decay_rate),
         pi_min_mass_preserved_to_trust_step=\
             float(pi_min_mass_preserved_to_trust_step),
-        converge_thr=float(converge_thr),
+        pi_converge_thr=float(pi_converge_thr),
         **kwargs)
     return pi_d_K, info
 
 
-def make_convex_alpha(alpha=None, nef_alpha=None):
+def make_convex_alpha_minus_1(alpha=None, nef_alpha=None):
     """ Convert provided alpha into its equivalent for convex MAP problem
 
     Returns
@@ -145,10 +147,11 @@ if __name__ == '__main__':
     parser.add_argument('--Ud', type=int, default=100)
     parser.add_argument('--nef_alpha', type=float, default=1.1)
     parser.add_argument(
-        '--max_iters',
+        '--pi_max_iters',
         type=int,
-        default=DefaultDocTopicOptKwargs['max_iters'])
-    parser.add_argument('--pi_step_size',
+        default=DefaultDocTopicOptKwargs['pi_max_iters'])
+    parser.add_argument(
+        '--pi_step_size',
         type=float,
         default=DefaultDocTopicOptKwargs['pi_step_size'])
     parser.add_argument('--verbose', type=int, default=0)
@@ -156,7 +159,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     lstep_kwargs = dict(**DefaultDocTopicOptKwargs)
-    lstep_kwargs['max_iters'] = args.max_iters
+    lstep_kwargs['pi_max_iters'] = args.pi_max_iters
     lstep_kwargs['pi_step_size'] = args.pi_step_size
     if args.verbose:
         lstep_kwargs['verbose'] = True

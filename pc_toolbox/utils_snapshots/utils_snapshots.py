@@ -49,7 +49,10 @@ def download_snapshot(
         except KeyError:
             raise ValueError("Bad value for remote_path: %s" % remote_path)
     if rsync_path is None:
-        rsync_path = os.path.expandvars("$SSCAPEROOT/scripts/rsync_tools/")
+        try:
+            rsync_path = os.environ['XHOST_RSYNC_PATH']
+        except KeyError:
+            raise ValueError("Bad value for rsync_path: %s" % rsync_path)
 
     local_path = os.path.abspath(local_path)
     remote_path = os.path.abspath(remote_path)

@@ -43,12 +43,6 @@ def to_common_arr(
     log_topics_KV += np.log1p(-V * min_eps)
     topics_KV = np.exp(log_topics_KV)
 
-    # Sum here should be 1 - V * min_eps
-    #assert np.allclose(
-    #    topics_KV.sum(axis=1),
-    #    1.0 - (V * min_eps),
-    #    atol=min_eps,
-    #    rtol=0.0)
     return min_eps + topics_KV
 
 def to_diffable_arr(topics_KV, min_eps=MIN_EPS, do_force_safe=False):
@@ -102,9 +96,8 @@ def to_safe_common_arr(topics_KV, min_eps=MIN_EPS):
 if __name__ == '__main__':
     topics_KV = np.eye(3) + np.ones((3,3))
     topics_KV /= topics_KV.sum(axis=1)[:,np.newaxis]
-    log_topics_KVm1 = to_diffable_arr(topics_KV)
 
     print('------ before')
     print(topics_KV)
     print('------ after')
-    print(to_common_arr(log_topics_KVm1))
+    print(to_common_arr(to_diffable_arr(topics_KV)))

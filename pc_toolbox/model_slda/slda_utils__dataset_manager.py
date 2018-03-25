@@ -325,14 +325,19 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset_path',
-        default=os.path.expandvars('$SSCAPEROOT/sscape/datasets/bow_pang_movie_reviews/v20170929_split_80_10_10/'),
+        default=os.path.expandvars('$PC_REPO_DIR/datasets/toy_bars_3x3/'),
+        type=str)
+    parser.add_argument('--dataset_name',
+        default='toy_bars_3x3',
         type=str)
     args = parser.parse_args()
 
     for split_name in ['train', 'valid', 'test']:
-        data_info = load_dataset(
+        dataset_dict, info_dict = load_dataset(
             dataset_path=args.dataset_path,
-            split_name=split_name)
+            split_name=split_name,
+            return_info=True)
         print describe_bow_dataset(
-            dataset=data_info['dataset'],
-            label_list=data_info['label_list'])
+            dataset=dataset_dict,
+            dataset_name="%s set of %s" % (split_name.upper(), args.dataset_name),
+            label_list=info_dict['label_list'])

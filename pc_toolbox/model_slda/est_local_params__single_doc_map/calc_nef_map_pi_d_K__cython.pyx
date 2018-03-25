@@ -8,12 +8,12 @@ def calc_nef_map_pi_d_K__cython(
         double[:,:] topics_KUd,
         double[:,:] ct_topics_KUd,
         double convex_alpha_minus_1=0.0,
-        int max_iters=0,
-        double converge_thr=0.0,
+        int pi_max_iters=0,
+        double pi_converge_thr=0.0,
         double pi_step_size=0.0,
         double pi_step_decay_rate=0.0,
         double pi_min_mass_preserved_to_trust_step=1.0,
-        double min_pi_step_size=0.0,
+        double pi_min_step_size=0.0,
         **kwargs):
     """ Find MAP estimate of the K-dim. proba vector for specific document.
 
@@ -46,7 +46,7 @@ def calc_nef_map_pi_d_K__cython(
     cdef int k = 0
     cdef int u = 0
     cdef double max_val = -1e9
-    while giter < max_iters:
+    while giter < pi_max_iters:
         for k in range(K):
             grad_K[k] = 0.0
         for u in xrange(Ud):
@@ -74,7 +74,7 @@ def calc_nef_map_pi_d_K__cython(
             new_pi_sum += grad_K[k]
 
         if new_pi_sum <= pi_min_mass_preserved_to_trust_step:
-            if pi_step_size > min_pi_step_size:
+            if pi_step_size > pi_min_step_size:
                 # Retry from previous pi_d_K with smaller step size
                 n_restarts += 1
                 pi_step_size *= pi_step_decay_rate
@@ -90,7 +90,7 @@ def calc_nef_map_pi_d_K__cython(
                 new_pi_k = grad_K[k] / new_pi_sum
                 cur_L1_diff += abs(pi_d_K[k] - new_pi_k)
                 pi_d_K[k] = new_pi_k
-            if cur_L1_diff < converge_thr:
+            if cur_L1_diff < pi_converge_thr:
                 did_converge = 1
                 break
         else:
@@ -99,11 +99,11 @@ def calc_nef_map_pi_d_K__cython(
 
     return np.asarray(pi_d_K), dict(
         n_iters=giter,
-        max_iters=max_iters,
         did_converge=did_converge,
-        cur_L1_diff=cur_L1_diff,
-        converge_thr=converge_thr,
         n_restarts=n_restarts,
+        cur_L1_diff=cur_L1_diff,
+        pi_max_iters=pi_max_iters,
+        pi_converge_thr=pi_converge_thr,
         pi_step_size=pi_step_size,
-        min_pi_step_size=min_pi_step_size,
+        pi_min_step_size=pi_min_step_size,
         convex_alpha_minus_1=convex_alpha_minus_1)

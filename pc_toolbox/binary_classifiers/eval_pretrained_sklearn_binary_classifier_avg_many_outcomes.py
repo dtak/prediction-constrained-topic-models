@@ -32,6 +32,7 @@ import argparse
 import itertools
 import time
 import scipy.sparse
+import glob
 
 from collections import OrderedDict
 from distutils.dir_util import mkpath
@@ -47,7 +48,7 @@ from sklearn.naive_bayes import BernoulliNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import Normalizer, Binarizer
 from sklearn.pipeline import Pipeline
-from sscape.utils_io import (
+from pc_toolbox.utils_io import (
     load_csr_matrix, pprint, config_pprint_logging,
     load_list_of_strings_from_txt,
     load_list_of_unicode_from_txt,
@@ -57,6 +58,8 @@ from train_and_eval_sklearn_binary_classifier import (
     make_constructor_and_evaluator_funcs,
     ThresholdClassifier,
     )
+
+from calc_roc_auc_via_bootstrap import calc_binary_clf_metric_with_ci_via_bootstrap
 
 def read_args_from_stdin_and_run():
     ''' Main executable function to train and evaluate classifier.
@@ -86,12 +89,16 @@ def read_args_from_stdin_and_run():
         " perf_metric*.txt files: auc_train.txt & auc_test.txt" +
         " settings.txt: description of all settings to reproduce.")
     parser.add_argument(
+        '--output_path',
+        default=None,
+        type=str,
+        help='Place to write output files. Defaults to pretrained_clf_path if not specified.')
+    parser.add_argument(
         '--split_names',
         default='test')
     parser.add_argument(
         '--split_nicknames',
-        default='evaltest')
-
+        default=None)
     parser.add_argument(
         '--features_path',
         default='/tmp/',
@@ -110,6 +117,14 @@ def read_args_from_stdin_and_run():
         ' To try specific interventions, write names separated by commas.' +
         ' To try all interventions, use special name "all"')
     parser.add_argument(
+        '--top_k',
+        default=3, type=int,
+        help='Num of predictions to take to compute hitrate')
+    parser.add_argument(
+        '--oracle_dataset_path',
+        default=None, type=str,
+        help='Path to train arrays used as oracle knowledge for predictions')
+    parser.add_argument(
         '--seed_bootstrap',
         default=42,
         type=int,
@@ -124,21 +139,38 @@ def read_args_from_stdin_and_run():
         default=True,
         type=int,
         help='Whether to stratify examples or not')
+
     args, unk_list = parser.parse_known_args()
     arg_dict = vars(args)
 
     dataset_path = arg_dict['dataset_path']
-    assert os.path.exists(arg_dict['pretrained_clf_path'])
-    output_path = arg_dict['pretrained_clf_path']
+    if arg_dict['output_path'] is None:
+        output_path = arg_dict['pretrained_clf_path']
+    else:
+        output_path = arg_dict['output_path']
+        if not os.path.exists(output_path):
+            mkpath(output_path)
 
-    clf_opts = list()
-    # Write parsed args to plain-text file
-    # so we can exactly reproduce later
-    with open(os.path.join(output_path, 'settings.txt'), 'r') as f:
-        for line in f.readlines():
-            line = line.strip()
-            clf_opts.append(line.split(' = '))
-    clf_opts = dict(clf_opts)
+    if arg_dict['oracle_dataset_path'] is None:
+        arg_dict['oracle_dataset_path'] = dataset_path
+
+    # Set default seed for numpy
+    # Might be used by cross-validation, etc.
+    np.random.seed(8675309)
+
+    clf_opt_list = list()
+    # Read parsed args from plain-text file
+    # so we can exactly reproduce pretrained classifier
+    try:
+        with open(os.path.join(arg_dict['pretrained_clf_path'], 'settings.txt'), 'r') as f:
+            for line in f.readlines():
+                line = line.strip()
+                clf_opt_list.append(line.split(' = '))
+        clf_opts = dict(clf_opt_list)
+    except IOError as e:
+        clf_opts = dict()
+        clf_opts['feature_arr_names'] = 'X' # DUMMY!
+        clf_opts['classifier_name'] = arg_dict['pretrained_clf_path']
 
     feat_path_list = [
         arg_dict['dataset_path'],
@@ -178,13 +210,18 @@ def read_args_from_stdin_and_run():
             assert name in all_target_names
             target_cols.append(all_target_names.index(name))
 
-    datasets_by_split = dict()
-    split_nicknames = arg_dict['split_nicknames'].split(',')
+    datasets_by_split = OrderedDict()
     split_names = arg_dict['split_names'].split(',')
+    if arg_dict['split_nicknames'] is None:
+        split_nicknames = split_names
+    else:
+        split_nicknames = arg_dict['split_nicknames'].split(',')
 
+    alias_by_split = OrderedDict()
     for nickname, split_name in zip(split_nicknames,split_names):
         datasets_by_split[nickname] = dict()
         split_dataset = datasets_by_split[nickname]
+        alias_by_split[nickname] = split_name
 
         # Load Y
         dense_fpath = os.path.join(
@@ -286,77 +323,128 @@ def read_args_from_stdin_and_run():
     elapsed_time = time.time() - start_time
     print('[run_classifier says:] dataset loaded after %.2f sec.' % elapsed_time)
 
-    n_cols = len(target_names)
-    for c in xrange(n_cols):
-        print('[eval_pretrained_classifier says:] eval for target %s' % target_names[c])
-        eval_pretrained_clf(
-            classifier_name=clf_opts['classifier_name'],
-            classifier_path=arg_dict['pretrained_clf_path'],
-            datasets_by_split=datasets_by_split,
-            y_col_id=c,
-            y_orig_col_id=all_target_names.index(target_names[c]),
-            y_col_name=target_names[c],
-            feat_colnames=feat_colnames,
-            output_path=arg_dict['pretrained_clf_path'],
-            seed_bootstrap=arg_dict['seed_bootstrap'],
-            n_bootstraps=arg_dict['n_bootstraps'],
-            bootstrap_stratify_pos_and_neg=arg_dict['bootstrap_stratify_pos_and_neg'],
-            )
-        elapsed_time = time.time() - start_time
-        print('[eval_pretrained_classifier says:] target %s completed after %.2f sec' % (target_names[c], elapsed_time))
+    print('[eval_pretrained_classifier says:] eval multilabel')
+    eval_pretrained_avg_clf(
+        classifier_name=clf_opts['classifier_name'],
+        classifier_path=arg_dict['pretrained_clf_path'],
+        datasets_by_split=datasets_by_split,
+        alias_by_split=alias_by_split,
+        dataset_path=arg_dict['dataset_path'],
+        oracle_dataset_path=arg_dict['oracle_dataset_path'],
+        feat_colnames=feat_colnames,
+        output_path=output_path,
+        target_arr_name=target_arr_name,
+        label_names=all_target_names,
+        feature_arr_names=feature_arr_names,
+        seed_bootstrap=arg_dict['seed_bootstrap'],
+        n_bootstraps=arg_dict['n_bootstraps'],
+        bootstrap_stratify_pos_and_neg=arg_dict['bootstrap_stratify_pos_and_neg'],
+        )
+    elapsed_time = time.time() - start_time
+    print('[eval_pretrained_classifier says:] completed after %.2f sec' % (elapsed_time))
 
 
-def eval_pretrained_clf(
+def eval_pretrained_avg_clf(
         classifier_path='/tmp/',
         classifier_name='logistic_regression',
+        target_arr_name='Y',
+        label_names=None,
+        feature_arr_names=[],
+        dataset_path=None,
+        oracle_dataset_path=None,
         datasets_by_split=None,
+        alias_by_split=None,
         verbose=True,
         feat_colnames=None,
-        y_col_id=0,
-        y_orig_col_id=0,
-        y_col_name='',
         output_path='/tmp/',
+        top_k=3,
+        n_bootstraps=1000,
         seed_bootstrap=42,
-        n_bootstraps=5000,
-        bootstrap_stratify_pos_and_neg=True,
+        bootstrap_stratify_pos_and_neg=False,
         ):
     start_time = time.time()
-    (make_classifier, score_classifier, calc_best_idx,
-        make_clf_report, make_csv_row_dict, make_interp_report) = \
-            make_constructor_and_evaluator_funcs(
-                classifier_name,
-                n_bootstraps=n_bootstraps,
-                seed_bootstrap=seed_bootstrap,
-                bootstrap_stratify_pos_and_neg=bootstrap_stratify_pos_and_neg)
-
+    feature_arr_name = ','.join(feature_arr_names)
     # Read classifier obj from disk
-    clf_path = os.path.join(
-        classifier_path,
-        'clf_%d_object.dump' % (y_orig_col_id))
-    best_clf = joblib.load(clf_path)
+    some_key = datasets_by_split.keys()[0]
+    n_label = datasets_by_split[some_key]['y'].shape[1]
+    if os.path.exists(classifier_path):
+        clf_path_pattern = os.path.join(
+                classifier_path,
+                'clf_*_object.dump')
+        clf_path_files = glob.glob(clf_path_pattern)
+        assert n_label > 1
+        if len(clf_path_files) == 0:
+            raise ValueError("Bad clf_path_pattern: %s" % (
+                clf_path_files))
 
-    if os.path.exists(output_path):
-        n_keys = len(datasets_by_split.keys())
-        for ss, split in enumerate(datasets_by_split.keys()):
-            csv_fpath = os.path.join(
-                output_path,
-                'clf_%d_callback_%s.csv' % (y_orig_col_id, split))
-            row_dict = make_csv_row_dict(
-                best_clf,
-                datasets_by_split[split]['x'],
-                datasets_by_split[split]['y'][:, y_col_id],
-                y_col_name,
-                split,
-                classifier_name)
-            csv_df = pd.DataFrame([row_dict])
-            csv_df.to_csv(
+        elif len(clf_path_files) == n_label:
+            clf_list = list()
+            for yid in range(n_label):
+                clf_path = os.path.join(
+                    classifier_path,
+                    'clf_%d_object.dump' % (yid))
+                assert clf_path in clf_path_files
+                clf = joblib.load(clf_path)
+                clf_list.append(clf)
+            def clf_avg_func(x_ND, split_name=None, row_ids=None):
+                N = x_ND.shape[0]
+                yhat_NC = np.zeros((N, n_label), dtype=np.float64)
+                for c in range(n_label):
+                    yhat_NC[:,c] = clf_list[c].predict_proba(x_ND)[:,1]
+                return yhat_NC
+        else:
+            raise ValueError("SHOULDNT BE HERE")
+
+    # Evaluate
+    for ss, split in enumerate(datasets_by_split.keys()):
+        y_hat_NC = clf_avg_func(datasets_by_split[split]['x'])
+        y_true_NC = datasets_by_split[split]['y']
+
+        def calc_avg_AUC(y_true_NC, y_hat_NC):
+            C = y_true_NC.shape[1]
+            auc_C = np.zeros(C)
+            for c in range(C):
+                auc_C[c] = roc_auc_score(y_true_NC[:,c], y_hat_NC[:,c])
+            #print(' '.join(['%.3f' % x for x in auc_C]))
+            return np.mean(auc_C)
+
+        ci_tuples = [(2.5,97.5), (10,90)]
+        avg_auc, auc_intervals = calc_binary_clf_metric_with_ci_via_bootstrap(
+            y_pred=y_hat_NC,
+            y_true=y_true_NC,
+            metric_func=calc_avg_AUC,
+            ci_tuples=ci_tuples,
+            stratify_pos_and_neg=bootstrap_stratify_pos_and_neg,
+            n_bootstraps=n_bootstraps,
+            seed=seed_bootstrap)
+        row_dict = OrderedDict([
+            ('Y_COL_NAME', 'avg'),
+            ('SPLIT_NAME', split.upper()),
+            ('Y_ROC_AUC', avg_auc),
+            ('Y_ERROR_RATE', np.nan),
+            ('Y_F1_SCORE', np.nan),
+            ('LEGEND_NAME', classifier_name),
+            ('IS_BEST_SNAPSHOT', 1),
+            ])
+        for ci_tuple, auc_tuple in zip(ci_tuples, auc_intervals):
+            for perc, val in zip(ci_tuple, auc_tuple):
+                row_dict['Y_ROC_AUC_CI_%05.2f%%' % perc] = val
+
+        for ci_tuple, f1_tuple in zip(ci_tuples, auc_intervals):
+            for perc, val in zip(ci_tuple, f1_tuple):
+                row_dict['Y_F1_SCORE_CI_%05.2f%%' % perc] = np.nan
+
+        csv_df = pd.DataFrame([row_dict], columns=row_dict.keys())
+        csv_fpath = os.path.join(
+            output_path,
+            'clf_avg_callback_%s.csv' % (split))
+        csv_df.to_csv(
                 csv_fpath,
                 index=False)
-            if verbose:
-                elapsed_time = time.time() - start_time
-                print("eval %d/%d on %5s split done after %11.2f sec" % (ss, n_keys, split, elapsed_time))
-                print("wrote csv file: " + csv_fpath)
-    return best_clf
-
+        if verbose:
+            elapsed_time = time.time() - start_time
+            print("eval on %5s split done after %11.2f sec" % (split, elapsed_time))
+            print("wrote csv file: " + csv_fpath)
+ 
 if __name__ == '__main__':
     read_args_from_stdin_and_run()

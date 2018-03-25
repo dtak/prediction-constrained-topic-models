@@ -96,16 +96,14 @@ def save_csr_matrix(filename, array):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
+    parser.add_argument("--dataset_path", default=os.path.abspath('.'), type=str)
     parser.add_argument("--n_docs_train", default=500, type=int)
     parser.add_argument("--n_docs_test", default=500, type=int)
     parser.add_argument("--n_docs_valid", default=500, type=int)
-    parser.add_argument(
-        '--true_model_path',
-        default='./truemodel-n_topics=$n_topics/',
-        type=str)
-    args = parser.parse_args()
 
-    prng = np.random.RandomState(42)
+    args = parser.parse_args()
+    dataset_path = os.path.abspath(args.dataset_path)
+
     x_list = list()
     y_list = list()
     n_docs = args.n_docs_train + args.n_docs_valid + args.n_docs_test
@@ -136,17 +134,16 @@ if __name__ == '__main__':
         args.n_docs_train + args.n_docs_valid,
         x_DV.shape[0])
 
-    np.save("Y_train.npy", y_DC[train_doc_ids])
-    np.save("Y_valid.npy", y_DC[valid_doc_ids])
-    np.save("Y_test.npy", y_DC[test_doc_ids])
+    np.save(os.path.join(dataset_path, "Y_train.npy"), y_DC[train_doc_ids])
+    np.save(os.path.join(dataset_path, "Y_valid.npy"), y_DC[valid_doc_ids])
+    np.save(os.path.join(dataset_path, "Y_test.npy"), y_DC[test_doc_ids])
 
-    save_csr_matrix("X_csr_train.npz", x_csr_DV[train_doc_ids])
-    save_csr_matrix("X_csr_valid.npz", x_csr_DV[valid_doc_ids])
-    save_csr_matrix("X_csr_test.npz", x_csr_DV[test_doc_ids])
+    save_csr_matrix(os.path.join(dataset_path, "X_csr_train.npz"), x_csr_DV[train_doc_ids])
+    save_csr_matrix(os.path.join(dataset_path, "X_csr_valid.npz"), x_csr_DV[valid_doc_ids])
+    save_csr_matrix(os.path.join(dataset_path, "X_csr_test.npz"), x_csr_DV[test_doc_ids])
 
 
     # Write necessary txt files
-    dataset_path = '.'
     V = x_DV.shape[1]
     with open(os.path.join(dataset_path, 'X_colnames.txt'), 'w') as f:
         for vocab_term in vocab_list:

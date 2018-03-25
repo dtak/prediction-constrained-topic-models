@@ -9,11 +9,11 @@ def calc_nef_map_pi_d_K__numpy_linesearch(
         topics_KV=None,
         nef_alpha=None,
         init_pi_d_K=None,
-        max_iters=DefaultDocTopicOptKwargs['max_iters'],
-        converge_thr=DefaultDocTopicOptKwargs['converge_thr'],
+        pi_max_iters=DefaultDocTopicOptKwargs['pi_max_iters'],
+        pi_converge_thr=DefaultDocTopicOptKwargs['pi_converge_thr'],
         pi_step_size=DefaultDocTopicOptKwargs['pi_step_size'],
-        max_pi_step_size=DefaultDocTopicOptKwargs['max_pi_step_size'],
-        min_pi_step_size=DefaultDocTopicOptKwargs['min_pi_step_size'],
+        pi_max_step_size=DefaultDocTopicOptKwargs['pi_max_step_size'],
+        pi_min_step_size=DefaultDocTopicOptKwargs['pi_min_step_size'],
         pi_step_decay_rate=DefaultDocTopicOptKwargs['pi_step_decay_rate'],
         pi_min_mass_preserved_to_trust_step=\
             DefaultDocTopicOptKwargs['pi_min_mass_preserved_to_trust_step'],
@@ -70,7 +70,7 @@ def calc_nef_map_pi_d_K__numpy_linesearch(
     n_improve_in_a_row = 0
     giter = 0
     cur_step_size = pi_step_size * pi_step_decay_rate
-    while giter < max_iters:
+    while giter < pi_max_iters:
         giter = giter + 1
         #denom_Ud = 1.0 / np.dot(pi_d_K, topics_KUd)
         grad_K = (
@@ -85,13 +85,13 @@ def calc_nef_map_pi_d_K__numpy_linesearch(
 
             # But scale it down slightly (between 0.9 and 1.0)
             # so that we avoid too much oscillation around optimum
-            cur_step_size *= 1.0 - 0.1 * (float(giter)/float(max_iters))
+            cur_step_size *= 1.0 - 0.1 * (float(giter)/float(pi_max_iters))
 
         cur_step_size = np.minimum(
             max_pi_step_size,
             cur_step_size)
         did_improve = False
-        while cur_step_size >= min_pi_step_size:
+        while cur_step_size >= pi_min_step_size:
             new_pi_d_K = best_pi_d_K * np.exp(cur_step_size * grad_K)
             new_pi_d_K_sum = np.sum(new_pi_d_K)
             new_pi_d_K = new_pi_d_K / new_pi_d_K_sum
@@ -110,7 +110,7 @@ def calc_nef_map_pi_d_K__numpy_linesearch(
 
         # Check for convergence
         delta_mass = np.sum(np.abs(best_pi_d_K - new_pi_d_K))
-        if delta_mass < converge_thr:
+        if delta_mass < pi_converge_thr:
             did_converge = 1
         if did_improve:
             if verbose:
@@ -137,11 +137,11 @@ def calc_nef_map_pi_d_K__numpy_linesearch(
         did_converge=did_converge,
         n_iters=giter,
         n_iters_try=giter + n_restarts,
-        max_iters=max_iters,
+        pi_max_iters=pi_max_iters,
         n_restarts=n_restarts,
-        converge_thr=converge_thr,
+        pi_converge_thr=pi_converge_thr,
         pi_step_size=cur_step_size,
-        min_pi_step_size=min_pi_step_size)
+        pi_min_step_size=pi_min_step_size)
     if track_stuff:
         info_dict['pi_list'] = pi_list
         info_dict['step_list'] = step_list

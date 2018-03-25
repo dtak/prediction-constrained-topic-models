@@ -32,7 +32,6 @@ import argparse
 import itertools
 import time
 import scipy.sparse
-import dill
 import copy
 
 from collections import OrderedDict
@@ -51,7 +50,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import Normalizer, Binarizer, FunctionTransformer
 from sklearn.preprocessing import normalize, binarize, minmax_scale
 from sklearn.pipeline import Pipeline
-from sscape.utils_io import (
+from pc_toolbox.utils_io import (
     load_csr_matrix, pprint, config_pprint_logging,
     load_list_of_strings_from_txt,
     load_list_of_unicode_from_txt,

@@ -122,23 +122,23 @@ def setup_random_seed(
         output_path=None,
         seed=None,
         **kwargs):
-    if output_path is None:
-        if seed is None:
-            return 0
+    if str(seed).lower() == 'none' or seed == 'from_output_path_and_taskid':
+        if output_path is None:
+            seed = 8675309
         else:
-            return int(seed)
-    output_folders = os.path.abspath(output_path).split(os.path.sep)
-    # Discard trailing '/' if it exists
-    while len(output_folders[-1]) == 0:
-        output_folders.pop()
-    if seed is None:
-        seed_str = str(output_folders[-2])[:5].split('-')[0]
-        taskidstr = output_folders[-1]
-        seed_str = seed_str[:5] + taskidstr
-        seed = int(hashlib.md5(seed_str).hexdigest(), 16) % 10000000
-        pprint('seed_str: ' + seed_str)
-    pprint('seed: %d' % int(seed))
-    return int(seed)
+            output_folders = os.path.abspath(output_path).split(os.path.sep)
+            # Discard trailing '/' if it exists
+            while len(output_folders[-1]) == 0:
+                output_folders.pop()
+            seed_str = str(output_folders[-2])[:8].split('-')[0]
+            taskidstr = output_folders[-1]
+            seed_str = seed_str[:5] + taskidstr
+            pprint('[setup_random_seed] seed_str=' + seed_str)
+            seed = int(hashlib.md5(seed_str).hexdigest(), 16) % 10000000
+    else:
+        seed = int(seed)
+    pprint('[setup_random_seed] seed=%d' % (seed))
+    return seed
 
 
 def make_empty_output_path(
@@ -165,3 +165,41 @@ def make_empty_output_path(
         if os.path.isdir(file_path):
             if file_path.endswith("topic_model_snapshot"):
                 shutil.rmtree(file_path)
+
+def write_env_vars_to_txt(
+        output_path=None,
+        prefixes=(
+            ['PC', 'XHOST', 'MKL', 'PYTHON', 'PATH']
+            + ['SGE', 'SLURM', 'LSF']
+            + ['MPL']),
+        ):
+    """ Write .txt file to provided output_path with environment var info.
+
+    Post condition
+    --------------
+    input_environment_vars.txt file written inside output_path.
+        Each line contains setting of environment variable. 
+    """
+    txt_fpath = os.path.join(output_path, 'input_environment_vars.txt')
+    with open(txt_fpath, 'w') as f:
+        for key in sorted(os.environ):
+            for prefix in prefixes:
+                if key.startswith(prefix):
+                    f.write("%s=%s\n" % (key, os.environ[key]))
+
+
+
+def write_user_provided_kwargs_to_txt(
+        arg_dict=None,
+        output_path=None):
+    """ Write .txt file to provided output_path with args info.
+
+    Post condition
+    --------------
+    input_keyword_args.txt file written inside output_path.
+        Each line contains --key value
+    """
+    txt_fpath = os.path.join(output_path, 'input_keyword_args.txt')
+    with open(txt_fpath, 'w') as f:
+        for key in sorted(arg_dict.keys()):
+            f.write("--%s %s\n" % (key, str(arg_dict[key])))

@@ -10,7 +10,7 @@ except ImportError:
 
 def make_cython_extension__nef_map_pi_d_K():
     ext = Extension(
-        "pc_toolbox/model_slda/est_local_params__single_doc_map/calc_nef_map_pi_d_K__cython",
+        "pc_toolbox.model_slda.est_local_params__single_doc_map.calc_nef_map_pi_d_K__cython",
         ["pc_toolbox/model_slda/est_local_params__single_doc_map/calc_nef_map_pi_d_K__cython.pyx"],
         libraries=["m"],
         extra_compile_args = ["-O3", "-ffast-math"])
@@ -46,7 +46,7 @@ def add_directives_to_cython_ext(ext):
     return ext
 
 setup(
+    setup_requires=["Cython>=0.25"],
     cmdclass = {"build_ext": build_ext},
     ext_modules = make_extensions(),
-    setup_requires=["Cython>=0.25"],
     )
