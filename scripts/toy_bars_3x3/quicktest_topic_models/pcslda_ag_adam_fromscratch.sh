@@ -11,7 +11,7 @@ export n_vocabs=9
 export n_outputs=2
 export n_train_docs=500
 
-export n_batches=5
+export n_batches=1
 
 # =============================== OUTPUT SETTINGS
 export param_output_fmt="topic_model_snapshot"
@@ -24,7 +24,7 @@ export n_steps_to_save_early=2
 export laps_to_save_custom='0,1,2,4,6,8,10'
 
 # =============================== ALGO SETTINGS
-export n_laps=10
+export n_laps=3
 
 ## Overall training: ADAM 
 export alg_name="grad_descent_minimizer"
@@ -40,6 +40,7 @@ do
 ## Per-doc inference settings
 export pi_max_iters=5
 export pi_step_size=0.05
+export pi_max_iters_first_train_lap=3
 
 # =============================== INIT SETTINGS
 export init_model_path=none

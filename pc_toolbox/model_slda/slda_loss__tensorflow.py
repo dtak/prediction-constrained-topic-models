@@ -77,6 +77,7 @@ def make_loss_func_and_grad_func_wrt_paramvec_and_step(
             y_DC=_y_DC,
             y_rowmask=_y_rowmask,
             ),
+        pi_max_iters_first_train_lap=pi_max_iters_first_train_lap,
         frac_train_laps_completed=_frac_train_laps_completed,
         dim_P=dim_P,
         convex_alpha_minus_1=make_convex_alpha_minus_1(alpha=model_hyper_P['alpha']),
