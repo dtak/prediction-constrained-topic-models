@@ -5,6 +5,24 @@ Public repo containing code to train, visualize, and evaluate semi-supervised to
 
 # Examples
 
+## Quicktest: Train topic models on toy bars
+
+Test script to train with autograd (ag) as source of automatic gradients:
+```
+cd $PC_REPO_DIR/scripts/toy_bars_3x3/quicktest_topic_models/
+
+XHOST=list bash pcslda_ag_adam_fromscratch.sh 
+```
+
+Test script to train with tensorflow (tf) as source of automatic gradients:
+```
+cd $PC_REPO_DIR/scripts/toy_bars_3x3/quicktest_topic_models/
+
+XHOST=list bash pcslda_tf_adam_fromscratch.sh 
+```
+
+
+
 # Installation
 
 * Step 1: Clone this repo
