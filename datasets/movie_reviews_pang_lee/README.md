@@ -1,0 +1,9 @@
+# Movie Reviews dataset (Pang and Lee 2005)
+
+Raw text from movie reviews of four critics comes from scaledata v1.0 dataset released by Pang et al \citep{pang2005moviereviews}\footnote{\url{http://www.cs.cornell.edu/people/pabo/movie-review-data/}}.
+
+Given plain text files of movie reviews, we tokenized and then stemmed using the Snowball stemmer from the nltk Python package, so that words with similar roots (e.g. film, films, filming) all become the same token. We removed all tokens in Mallet's list of common English stop words as well as any token included in the 1000 most common first names from the US census. We added this step after seeing too many common first names like Michael and Jennifer appear meaninglessly in many top-word lists for trained topics. We manually whitelisted "oscar" and "tony" due to their saliency to movie reviews sentiment. We then performed counts of all remaining tokens across the full raw corpus of 5006 documents, discarding any tokens that appear at least once in more than 20\% of all documents or less than 30 distinct documents. The final vocabulary list has 5375 terms.
+
+Each of the 5006 original documents was then reduced to this vocabulary set. We discarded any documents that were too short (less than 20 tokens), leaving 5005 documents. Each document has a binary label, where 0 indicates it has a negative review (below 0.6 in the original datasets' 0-1 scale) and 1 indicates positive review (>= 0.6). This 0.6 threshold matches a threshold previously used in the raw data's 4-category scale to separate 0 and 1 star reviews from 2 and 3 (of 3) star reviews. Data pairs ($x_d, y_d$) were then split into training, validation, test. Both validation and test used 10 \% of all documents, evenly balancing positive and negative labeled documents. The remaining documents were allocated to the training set.
+
+
