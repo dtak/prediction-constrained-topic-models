@@ -13,11 +13,11 @@ git clone https://github.com/dtak/prediction-constrained-topic-models/
 
 * Step 2: Setup a fresh conda enviroment with all required Python packages
 
-bash [$PC_REPO_DIR/scripts/install/create_conda_env.sh](https://github.com/dtak/prediction-constrained-topic-models/scripts/install/create_conda_env.sh)
+bash [`$PC_REPO_DIR/scripts/install/create_conda_env.sh`](https://github.com/dtak/prediction-constrained-topic-models/tree/master/scripts/install/create_conda_env.sh)
 
 * Step 3: (Optional) Install tensorflow
 
-bash [$PC_REPO_DIR/scripts/install/install_tensorflow_linux.sh](https://github.com/dtak/prediction-constrained-topic-models/scripts/install/install_tensorflow_linux.sh)
+bash [`$PC_REPO_DIR/scripts/install/install_tensorflow_linux.sh`](https://github.com/dtak/prediction-constrained-topic-models/tree/master/scripts/install/install_tensorflow_linux.sh)
 
 
 
