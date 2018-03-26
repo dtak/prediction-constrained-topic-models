@@ -358,9 +358,12 @@ def calc_laps_when_snapshots_saved(
         do_save_steps = np.unique(np.hstack([
             do_save_steps[:n_keep_left],
             do_save_steps[-n_keep_right:]])).tolist()
+        if len(do_save_steps) > n_keep_left:
+            do_save_steps.insert(n_keep_left, -1)
+            do_save_laps.insert(n_keep_left, -1)
     if return_str:
-        steps_str = ','.join(['%6d' % a for a in do_save_steps])
-        laps_str  = ','.join(['%6.3g' % a for a in do_save_laps])
+        steps_str = ','.join(['%6d' % a for a in do_save_steps]).replace('-1,', '...')
+        laps_str  = ','.join(['%6.3g' % a for a in do_save_laps]).replace('-1,', '...')
         return laps_str, steps_str
     else:
         return do_save_laps, do_save_steps

@@ -43,7 +43,7 @@ export pi_max_iters=100
 export pi_step_size=0.05
 # Try to make early iterations faster by doing less per-doc work
 # Will gradually ramp up from ___ to pi_max_iters
-for pi_max_iters_first_train_lap in 10 100
+for pi_max_iters_first_train_lap in 010 100
 do
     export pi_max_iters_first_train_lap=$pi_max_iters_first_train_lap
 
@@ -61,12 +61,12 @@ export lambda_w=0.001
 export weight_x=1.0
 
 ## Loop over weights to place on log p(y|x)
-for weight_y in 100.0 010.0 001.0 000.0
+for weight_y in 100.0 010.0 001.0 #000.0
 do
     export weight_y=$weight_y
 
 ## Loop over number of topics K
-for n_states in 010 025 050
+for n_states in 025 050
 do
     export n_states=$n_states
 
@@ -74,6 +74,7 @@ do
 
     bash $SSCAPEROOT/scripts/launch_job_on_host_via_env.sh || { exit 1; }
 
+done
 done
 done
 done
