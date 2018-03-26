@@ -18,7 +18,8 @@ bash [`$PC_REPO_DIR/scripts/install/create_conda_env.sh`](https://github.com/dta
 * Step 3: Compile Cython code for per-document inference (makes things very fast)
 
 `cd $PC_REPO_DIR/`
-`python` [`setup.py`](https://github.com/dtak/prediction-constrained-topic-models/tree/master/setup.py) `build_ext --inplace`
+
+python [`setup.py`](https://github.com/dtak/prediction-constrained-topic-models/tree/master/setup.py) `build_ext --inplace`
 
 * Step 4: (Optional) Install tensorflow
 
