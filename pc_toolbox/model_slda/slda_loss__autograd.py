@@ -52,7 +52,11 @@ def make_loss_func_and_grad_func_wrt_paramvec_and_step(
             param_vec=None,
             step_id=None,
             **unused_kwargs):
-        """
+        """ Compute loss at provided flat parameter vec
+
+        Returns
+        -------
+        loss_val : float
         """
         if step_id is None or step_id < 0:
             cur_dataset = dataset

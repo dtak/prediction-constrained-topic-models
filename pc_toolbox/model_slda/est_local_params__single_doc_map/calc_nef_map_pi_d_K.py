@@ -106,7 +106,7 @@ def calc_nef_map_pi_d_K(
         calc_pi_d_K = calc_nef_map_pi_d_K__numpy_linesearch
     elif method.count("tensorflow"):
         if not HAS_TENSORFLOW:
-            raise ImportError("No tensorflow")
+            return None, None
         calc_pi_d_K = calc_nef_map_pi_d_K__tensorflow
     elif method.count("autograd"):
         calc_pi_d_K = calc_nef_map_pi_d_K__autograd
@@ -215,6 +215,9 @@ if __name__ == '__main__':
             nef_alpha=nef_alpha,
             method=method,
             **lstep_kwargs)
+        if pi_d_K is None:
+            print "SKIPPING %-20s" % (method)
+            continue
         elapsed_time_sec = time.time() - start_time
 
         if pi_d_K.size > 8:

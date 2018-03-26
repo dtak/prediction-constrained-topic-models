@@ -162,7 +162,6 @@ def _calc_nef_map_pi_d_K__tensorflow_graph(
     _n_restarts = tf.constant(0, dtype=tf.int32)
     _cur_L1_diff = tf.constant(1.0, dtype=tf.float64)
     _did_converge = tf.constant(False, dtype=tf.bool)
-    print "before while"
     (_iterid, _pi_d_K, _pi_step_size,
             _cur_L1_diff, _did_converge, _n_restarts) = tf.while_loop(
         is_not_converged_func,
@@ -171,7 +170,6 @@ def _calc_nef_map_pi_d_K__tensorflow_graph(
             _iterid, _pi_d_K, _pi_step_size,
             _cur_L1_diff, _did_converge, _n_restarts],
         )
-    print 'after while'
     _info_dict = dict(
         n_iters=_iterid,
         n_restarts=_n_restarts,
@@ -184,4 +182,4 @@ def _calc_nef_map_pi_d_K__tensorflow_graph(
         pi_converge_thr=pi_converge_thr,
         pi_min_step_size=pi_min_step_size,
         convex_alpha_minus_1=convex_alpha_minus_1)
-    return _pi_d_K, _info_dict, const_dict
+    return _pi_d_K, _topics_KUd, _info_dict, const_dict
