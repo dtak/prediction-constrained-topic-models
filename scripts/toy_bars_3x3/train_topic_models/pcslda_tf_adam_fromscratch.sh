@@ -58,6 +58,7 @@ for weight_y in 100.0 010.0 001.0
 do
     export weight_y=$weight_y
 
+## Loop over number of topics K
 for n_states in 004
 do
     export n_states=$n_states

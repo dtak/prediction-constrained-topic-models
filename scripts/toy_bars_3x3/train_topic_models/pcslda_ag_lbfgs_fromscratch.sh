@@ -49,11 +49,12 @@ for weight_y in 100.0 010.0 001.0
 do
     export weight_y=$weight_y
 
+## Loop over number of topics K
 for n_states in 004
 do
     export n_states=$n_states
 
-    export output_path="$XHOST_RESULTS_DIR/$dataset_name/$nickname-n_batches=$n_batches-lossandgrad_mod=$lossandgrad_mod_name-n_states=$n_states-alpha=$alpha-tau=$tau-lambda_w=$lambda_w-init_name=$init_name-alg_name=$alg_name-weight_x=$weight_x-weight_y=$weight_y/1/"
+    export output_path="$XHOST_RESULTS_DIR/$dataset_name/$nickname-n_batches=$n_batches-lossandgrad_mod=$lossandgrad_mod_name-n_states=$n_states-alpha=$alpha-tau=$tau-lambda_w=$lambda_w-weight_x=$weight_x-weight_y=$weight_y-init_name=$init_name-alg_name=$alg_name/1/"
 
     bash $SSCAPEROOT/scripts/launch_job_on_host_via_env.sh || { exit 1; }
 
