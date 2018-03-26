@@ -43,4 +43,15 @@ python [`setup.py`](https://github.com/dtak/prediction-constrained-topic-models/
 
 bash [`$PC_REPO_DIR/scripts/install/install_tensorflow_linux.sh`](https://github.com/dtak/prediction-constrained-topic-models/tree/master/scripts/install/install_tensorflow_linux.sh)
 
+# Configuration
+
+Set up your environment variables!
+
+First, make a shortcut variable to the location of this repo, so you can easily reference datasets, etc.
+
+    $ export PC_REPO_DIR=/path/to/prediction_constrained_topic_models/
+
+Second, add this repo to your python path, so you can do "import pc_toolbox"
+
+    $ export PYTHONPATH=$PC_REPO_DIR:$PYTHONPATH
 
