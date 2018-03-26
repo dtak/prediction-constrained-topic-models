@@ -30,6 +30,7 @@ def train_slda_model(
         weight_x=1.0,
         weight_y=0.0,
         n_batches=1,
+        pi_max_iters_first_train_lap=1.0,
         **user_kwargs_P):
 
     # Load dataset
@@ -76,6 +77,7 @@ def train_slda_model(
         n_batches=int(n_batches),
         dim_P=dim_P,
         model_hyper_P=model_hyper_P,
+        pi_max_iters_first_train_lap=int(pi_max_iters_first_train_lap),
         max_train_laps=float(user_kwargs_P['n_laps']),
         )
 
@@ -230,11 +232,18 @@ if __name__ == '__main__':
         '--init_model_path',
         type=str,
         default=None)
+
+    ###
+    # Per-doc estimation kwargs
     parser.add_argument(
-        '--pi_frac_max_iters_first_train_lap',
+        '--pi_max_iters_first_train_lap',
         type=float,
-        default=1.0,
-        help="Fraction between 0 and 1. ")
+        default=(
+            model_slda.\
+            est_local_params__single_doc_map.DefaultDocTopicOptKwargs['pi_max_iters']),
+        help=(
+            "Max iters for pi estimation allowed on first lap."
+            + " Will gradually ramp up to pi_max_iters after 50% of laps"))
 
     ###
     # Random seed
@@ -242,9 +251,9 @@ if __name__ == '__main__':
         '--seed',
         type=str,
         default="from_output_path_and_taskid",
-        help=\
+        help=(
             "Random seed for initialization of model parameters."
-            + " Default value determines seed directly from output_path.")
+            + " Default value determines seed directly from output_path."))
 
     ### 
     # Output format settings

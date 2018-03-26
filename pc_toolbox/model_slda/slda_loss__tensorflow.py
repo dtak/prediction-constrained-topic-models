@@ -32,7 +32,7 @@ def make_loss_func_and_grad_func_wrt_paramvec_and_step(
         data_seed=42,
         dim_P=None,
         model_hyper_P=None,
-        pi_frac_max_iters_first_train_lap=1.0,
+        pi_max_iters_first_train_lap=None,
         max_train_laps=None,
         **unused_kwargs):
     ''' Create and return two callable functions: one for loss, one for gradient
@@ -188,8 +188,7 @@ def calc_loss__slda__tensorflow_graph(
         return_dict=False,
         rescale_total_loss_by_n_tokens=True,
         frac_train_laps_completed=1.0,
-        pi_frac_max_iters_first_train_lap=1.0,
-        pi_min_iters=DefaultDocTopicOptKwargs['pi_min_iters'],
+        pi_max_iters_first_train_lap=DefaultDocTopicOptKwargs['pi_max_iters'],
         pi_max_iters=DefaultDocTopicOptKwargs['pi_max_iters'],
         active_proba_thr=0.005,
         **unused_kwargs):
@@ -216,14 +215,27 @@ def calc_loss__slda__tensorflow_graph(
     K, _ = topics_KV.get_shape().as_list()
     C, _ = w_CK.get_shape().as_list()
 
-    ## Establish pi_opt_kwargs
-    half_frac_progress = tf.minimum(tf.cast(1.0, tf.float64), 2.0 * frac_train_laps_completed)
-    pi_min_iters = int(pi_min_iters + np.ceil(
-        pi_frac_max_iters_first_train_lap * (pi_max_iters - pi_min_iters)))
+    ## Establish kwargs for pi optimization step
+    # Use 'ramp up' strategy to gradually increase per-doc iteration costs.
+    # At first, perform only pi_max_iters_first_train_lap.
+    # Linearly increase until reaching pi_max_iters,
+    # which is designed to happen 50% of way through training.
+    #
+    # frac_progress : float within (0.0, 1.0)
+    #     0.0 when frac_lap == 0
+    #     0.5 when frac_lap == 0.25
+    #     1.0 when frac_lap >= 0.5
+    # cur_pi_max_iters : int
+    #     Number of pi iters to run now
+    assert pi_max_iters_first_train_lap <= pi_max_iters
+    frac_progress = tf.minimum(
+        tf.cast(1.0, tf.float64),
+        2.0 * frac_train_laps_completed)
     cur_pi_max_iters = tf.cast(
-        pi_min_iters + tf.ceil(
-            half_frac_progress * (pi_max_iters - pi_min_iters)),
+        pi_max_iters_first_train_lap
+        + tf.ceil(frac_progress * (pi_max_iters - pi_max_iters_first_train_lap)),
         tf.int32)
+    # Pack up into the kwargs handed to pi optimization
     pi_opt_kwargs = dict(**DefaultDocTopicOptKwargs)
     pi_opt_kwargs['pi_max_iters'] = cur_pi_max_iters
 
