@@ -11,7 +11,7 @@ export n_vocabs=9
 export n_outputs=2
 export n_train_docs=500
 
-for n_batches in 1 5; do
+for n_batches in 01 05; do
 export n_batches=$n_batches
 
 # =============================== OUTPUT SETTINGS
