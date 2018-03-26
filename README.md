@@ -1,7 +1,22 @@
 # Prediction-Constrained Topic Models
-Public repo containing code to train, visualize, and evaluate semi-supervised topic models, as described in Hughes et al. AISTATS 2018
+Public repo containing code to train, visualize, and evaluate semi-supervised topic models, as described in Hughes et al. AISTATS 2018:
 
 # Overview
+
+### Repo overview
+```
+* datasets/
+  Provided datasets for simple experiments
+* pc_toolbox/
+  Main python package
+* scripts/
+  Bash scripts to run experiments
+```
+
+### Resources
+
+* Paper PDF: https://www.michaelchughes.com/papers/HughesEtAl_AISTATS_2018.pdf
+* Supplement PDF: https://www.michaelchughes.com/papers/HughesEtAl_AISTATS_2018_supplement.pdf
 
 # Examples
 
