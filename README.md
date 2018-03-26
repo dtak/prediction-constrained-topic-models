@@ -15,9 +15,13 @@ git clone https://github.com/dtak/prediction-constrained-topic-models/
 
 bash [`$PC_REPO_DIR/scripts/install/create_conda_env.sh`](https://github.com/dtak/prediction-constrained-topic-models/tree/master/scripts/install/create_conda_env.sh)
 
-* Step 3: (Optional) Install tensorflow
+* Step 3: Compile Cython code for per-document inference (makes things very fast)
+
+`cd $PC_REPO_DIR/`
+`python` [`setup.py`](https://github.com/dtak/prediction-constrained-topic-models/tree/master/setup.py) `build_ext --inplace`
+
+* Step 4: (Optional) Install tensorflow
 
 bash [`$PC_REPO_DIR/scripts/install/install_tensorflow_linux.sh`](https://github.com/dtak/prediction-constrained-topic-models/tree/master/scripts/install/install_tensorflow_linux.sh)
-
 
 
