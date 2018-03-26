@@ -1,11 +1,13 @@
 try:
-    from calc_nef_map_pi_d_K import (
+    from calc_nef_map_pi_d_K__tensorflow import (
         calc_nef_map_pi_d_K__tensorflow,
         _calc_nef_map_pi_d_K__tensorflow_graph,
+        )
     HAS_TENSORFLOW = True
 except ImportError:
     HAS_TENSORFLOW = False
     _calc_nef_map_pi_d_K__tensorflow_graph = None
+    calc_nef_map_pi_d_K__tensorflow = None
 
 from calc_nef_map_pi_d_K import (
     calc_nef_map_pi_d_K,

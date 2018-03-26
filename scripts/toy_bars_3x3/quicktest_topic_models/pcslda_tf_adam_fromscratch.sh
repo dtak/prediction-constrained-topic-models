@@ -1,8 +1,8 @@
 export XHOST_NTASKS=1
 export XHOST_BASH_EXE=$PC_REPO_DIR/scripts/train_slda.sh
-nickname=20180301
+nickname=quicktest
 
-export lossandgrad_mod_name="slda_loss__autograd"
+export lossandgrad_mod_name="slda_loss__tensorflow"
 
 # =============================== DATA SETTINGS
 export dataset_name=toy_bars_3x3

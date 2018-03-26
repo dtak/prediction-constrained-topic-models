@@ -11,12 +11,20 @@ import tensorflow as tf
 import numpy as np
 from scipy.special import gammaln
 
+from pc_toolbox.utils_data import make_slice_for_step
+
+import slda_utils__dataset_manager
+
 from slda_utils__diffable_param_manager__tensorflow import (
-    unflatten_to_common_param_dict)
-from est_local_params__single_doc_map import (
-    calc_nef_map_pi_d_K__tensorflow,
-    make_convex_alpha_minus_1,
+    unflatten_to_common_param_dict__tf,
+    _unflatten_to_common_param_dict__tf_graph,
     )
+from est_local_params__single_doc_map import (
+    _calc_nef_map_pi_d_K__tensorflow_graph,
+    make_convex_alpha_minus_1,
+    DefaultDocTopicOptKwargs,
+    )
+
 
 def make_loss_func_and_grad_func_wrt_paramvec_and_step(
         dataset=None,
@@ -80,6 +88,7 @@ def make_loss_func_and_grad_func_wrt_paramvec_and_step(
     _loss_ttl = _loss_x + _loss_y + _loss_pi + _loss_t + _loss_w
     _grad_vec = tf.gradients(_loss_ttl, [_param_vec])[0]
     sess = tf.Session()
+
     ## BEGIN LOSS FUNC DEFN
     def loss_func(
             param_vec=None,
@@ -109,16 +118,16 @@ def make_loss_func_and_grad_func_wrt_paramvec_and_step(
         loss_ttl = sess.run([_loss_ttl],
             feed_dict={
                 _param_vec:param_vec,
-                _n_docs:cur_dataset['n_docs'],
-                _word_id_U:cur_dataset['word_id_U'],
-                _word_ct_U:cur_dataset['word_ct_U'],
-                _doc_indptr_Dp1:cur_dataset['doc_indptr_Dp1'],
-                _y_DC:cur_dataset['y_DC'],
+                _n_docs:int(cur_dataset['n_docs']),
+                _word_id_U:np.asarray(cur_dataset['word_id_U'], dtype=np.int32),
+                _word_ct_U:np.asarray(cur_dataset['word_ct_U'], dtype=np.float64),
+                _doc_indptr_Dp1:np.asarray(cur_dataset['doc_indptr_Dp1'], dtype=np.int32),
+                _y_DC:np.asarray(cur_dataset['y_DC'], dtype=np.float64),
                 _y_rowmask:cur_dataset.get(
                     'y_rowmask',
                     np.ones(cur_dataset['n_docs'], dtype=np.int32)),
                 _frac_train_laps_completed:frac_train_laps_completed,
-                })
+                })[0]
         return loss_ttl
     ## END LOSS FUNC DEFN
 
@@ -151,16 +160,16 @@ def make_loss_func_and_grad_func_wrt_paramvec_and_step(
         grad_vec = sess.run([_grad_vec],
             feed_dict={
                 _param_vec:param_vec,
-                _n_docs:cur_dataset['n_docs'],
-                _word_id_U:cur_dataset['word_id_U'],
-                _word_ct_U:cur_dataset['word_ct_U'],
-                _doc_indptr_Dp1:cur_dataset['doc_indptr_Dp1'],
-                _y_DC:cur_dataset['y_DC'],
+                _n_docs:int(cur_dataset['n_docs']),
+                _word_id_U:np.asarray(cur_dataset['word_id_U'], dtype=np.int32),
+                _word_ct_U:np.asarray(cur_dataset['word_ct_U'], dtype=np.float64),
+                _doc_indptr_Dp1:np.asarray(cur_dataset['doc_indptr_Dp1'], dtype=np.int32),
+                _y_DC:np.asarray(cur_dataset['y_DC'], dtype=np.float64),
                 _y_rowmask:cur_dataset.get(
                     'y_rowmask',
                     np.ones(cur_dataset['n_docs'], dtype=np.int32)),
                 _frac_train_laps_completed:frac_train_laps_completed,
-                })
+                })[0] 
         return grad_vec
     ## END GRAD FUNC DEFN
     return loss_func, grad_func
@@ -201,14 +210,14 @@ def calc_loss__slda__tensorflow_graph(
     
     ## Unpack params
     assert param_vec is not None
-    param_dict = unflatten_to_common_param_dict(param_vec, **dim_P)
+    param_dict = _unflatten_to_common_param_dict__tf_graph(param_vec, **dim_P)
     topics_KV = param_dict['topics_KV']
     w_CK = param_dict['w_CK']
     K, _ = topics_KV.get_shape().as_list()
     C, _ = w_CK.get_shape().as_list()
 
     ## Establish pi_opt_kwargs
-    half_frac_progress = tf.minimum(1.0, 2 * frac_train_laps_completed)
+    half_frac_progress = tf.minimum(tf.cast(1.0, tf.float64), 2.0 * frac_train_laps_completed)
     pi_min_iters = int(pi_min_iters + np.ceil(
         pi_frac_max_iters_first_train_lap * (pi_max_iters - pi_min_iters)))
     cur_pi_max_iters = tf.cast(
@@ -238,20 +247,20 @@ def calc_loss__slda__tensorflow_graph(
                 **pi_opt_kwargs)
         pi_arr = pi_arr.write(d, pi_d_K)
         avg_log_proba_pi_d = weight_pi * tf.reduce_sum(
-            (alpha - 1.0) * tf.log(1e-9 + pi_d_K))
+            convex_alpha_minus_1 * tf.log(1e-9 + pi_d_K))
         avg_log_proba_x_d = tf.reduce_sum(
-            word_ct_d_U * 
+            word_ct_d_Ud * 
             tf.log(tf.matmul(tf.reshape(pi_d_K, (1,K)), topics_KUd)))
         avg_log_proba_x_d += (
-            tf.lgamma(1.0 + tf.reduce_sum(word_ct_d_U))
-            - tf.reduce_sum(tf.lgamma(1.0 + word_ct_d_U)))
+            tf.lgamma(1.0 + tf.reduce_sum(word_ct_d_Ud))
+            - tf.reduce_sum(tf.lgamma(1.0 + word_ct_d_Ud)))
 
         log_proba_y_d_C = tf.reduce_sum(
             w_CK * tf.reshape(pi_d_K, (1,K)), axis=1)
         avg_log_proba_y_d = tf.cond(
             y_rowmask[d] > 0,
             lambda: -1.0 * tf.reduce_sum(
-                tf.nn.sigmoid_cross_entropy_with_logits(log_proba_y_d_C, y_DC[d])),
+                tf.nn.sigmoid_cross_entropy_with_logits(logits=log_proba_y_d_C, labels=y_DC[d])),
             lambda: tf.constant(0.0, dtype=tf.float64))
         y_arr = y_arr.write(d, tf.sigmoid(log_proba_y_d_C))
         return (
@@ -299,3 +308,73 @@ def calc_loss__slda__tensorflow_graph(
         -1.0 * _avg_log_proba_w,
         _pi_DK,
         _y_proba_DC)
+
+
+
+if __name__ == '__main__':
+    import os
+    from sklearn.externals import joblib
+    from slda_utils__param_manager import (
+        flatten_to_differentiable_param_vec,
+        unflatten_to_common_param_dict,
+        )
+    import slda_loss__autograd
+    # Simplest possible test
+    # Load the toy bars dataset
+    # Load "true" bars topics
+    # Compute the loss
+    dataset_path = os.path.expandvars("$PC_REPO_DIR/datasets/toy_bars_3x3/")
+    dataset = slda_utils__dataset_manager.load_dataset(dataset_path, split_name='train')
+    n_batches = 100
+
+    # Load "true" 4 bars
+    dim_P = dict(n_states=4, n_labels=1, n_vocabs=9)
+    model_hyper_P = dict(alpha=1.1, tau=1.1, lambda_w=0.001, weight_x=1.0, weight_y=1.0)
+    GP = joblib.load(
+        os.path.join(dataset_path, "good_loss_x_K4_param_dict.dump"))
+    for key in GP.keys():
+        if key not in ['topics_KV', 'w_CK']:
+            del GP[key]
+    param_vec = flatten_to_differentiable_param_vec(**GP)
+
+    GPA = unflatten_to_common_param_dict(param_vec, **dim_P)
+    GPB = unflatten_to_common_param_dict__tf(param_vec, **dim_P)
+
+    print("Checking flat-then-unflat for autograd:")
+    for key in GP:
+        assert np.allclose(GPA[key], GP[key])
+        print("%s OK" % key)
+    print("Checking flat-then-unflat for tensorflow:")
+    for key in GP:
+        assert np.allclose(GPB[key], GP[key])
+        print("%s OK" % key)
+
+    calc_loss__tf, calc_grad__tf = make_loss_func_and_grad_func_wrt_paramvec_and_step(
+        dataset=dataset,
+        n_batches=n_batches,
+        dim_P=dim_P,
+        model_hyper_P=model_hyper_P,
+        max_train_laps=1.0)
+
+    calc_loss__ag, calc_grad__ag = slda_loss__autograd.make_loss_func_and_grad_func_wrt_paramvec_and_step(
+        dataset=dataset,
+        n_batches=n_batches,
+        dim_P=dim_P,
+        model_hyper_P=model_hyper_P,
+        max_train_laps=1.0)
+ 
+    for method_name, calc_loss_func in [
+            ('tensorflow', calc_loss__tf),
+            ('autograd', calc_loss__ag)]:
+        loss_val = calc_loss_func(param_vec, 0)
+        print("loss %.6e via %-20s" % (loss_val, method_name))
+
+    for method_name, calc_grad_func in [
+            ('tensorflow', calc_grad__tf),
+            ('autograd', calc_grad__ag)]:
+        grad_vec = calc_grad_func(param_vec, 0)
+        print("l2_norm(grad_vec) %.6e via %-20s" % (np.sqrt(np.sum(np.square(grad_vec))), method_name))
+
+
+
+
