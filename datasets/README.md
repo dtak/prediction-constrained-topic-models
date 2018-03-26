@@ -24,7 +24,7 @@ In this task, we have for each example (aka document, indexed by 'd') some input
     If all real-valued, this is a multivariate-outcome regression task.
 ```
 
-Dataset size variables:
+Dataset size variables and abbreviations:
 ```
 * D : int 
     n_docs
@@ -37,7 +37,7 @@ Dataset size variables:
     number of outcome
 * U : int
     n_unique_tokens
-    number of non-zero (doc_id, term_id) pairs in sparse matrix
+    number of non-zero (doc_id, vocab_id) pairs in sparse matrix
 ```
 
 ## Overview
@@ -59,12 +59,34 @@ Example usage:
 
 ```
 
+Each dataset (like toy_bars_3x3/) is located in its own folder on disk, with contents that must match the following file names:
+
+$ ls $PC_REPO_DIR/datasets/toy_bars_3x3/
+
+```
+* X_colnames.txt : utf-8 formatted text file
+    V lines (one line per vocab term)
+    Each line contains the string name of its corresponding vocab term
+
+* Y_colnames.txt : utf-8 formatted text file
+    C lines (one line per outcome)
+    Each line contains the string name of its corresponding outcome
+
+* X_csr_train.npz : npz file for a scipy.sparse.csr_matrix
+* X_csr_valid.npz : npz file for a scipy.sparse.csr_matrix
+* X_csr_test.npz : npz file for a scipy.sparse.csr_matrix
+
+* Y_train.npy : npy file
+* Y_valid.npy : npy file
+* Y_test.npy : npy file
+```
+
 
 ## In-memory format
 
 We represent datasets as dictionary objections, with keys:
 ```
-* x_csr_DV : 2D scipy.csr_matrix, shape D x V (n_docs x n_vocabs)
+* x_csr_DV : 2D scipy.sparse.csr_matrix, shape D x V (n_docs x n_vocabs)
     Each row is sparse representation of x_d's count data.
 
 * y_DC : 2D numpy array, shape D x C (n_docs x n_labels)
@@ -94,8 +116,9 @@ X_csr_$SPLIT.npz : .npz file contains
 
 To obtain the relevant arrays for a given dense array, just do:
 ```
+>>> import scipy.sparse
 >>> x_arr = np.eye(10)
->>> x_csr = scipy.csr_matrix(x_arr)
+>>> x_csr = scipy.sparse.csr_matrix(x_arr)
 >>> npz_dict = dict(
 ...     shape=x_csr.shape,
 ...     data=x_csr.data,
