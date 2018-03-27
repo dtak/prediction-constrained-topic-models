@@ -3,7 +3,7 @@ import sys
 import numpy as np
 
 from collections import OrderedDict
-from sscape.utils_io import load_param_dict_from_topic_model_snapshot
+from pc_toolbox.model_slda.slda_utils__param_io_manager import load_topic_model_param_dict
 
 def load_param_dict_at_specific_snapshot(
         snapshot_path=None,
@@ -24,7 +24,7 @@ def load_param_dict_at_specific_snapshot(
     if not os.path.exists(snapshot_path) and download_if_necessary:
         download_snapshot(snapshot_path, rsync_path, local_path, remote_path)
 
-    GP = load_param_dict_from_topic_model_snapshot(
+    GP = load_topic_model_param_dict(
         snapshot_path=snapshot_path,
         w_txt_basename=w_txt_basename,
         add_bias_term_to_w_CK=add_bias_term_to_w_CK,
@@ -52,25 +52,29 @@ def download_snapshot(
         try:
             rsync_path = os.environ['XHOST_RSYNC_PATH']
         except KeyError:
-            raise ValueError("Bad value for rsync_path: %s" % rsync_path)
+            rsync_path = os.path.expandvars("$PC_REPO_DIR/scripts/rsync_tools/")
+    if not os.path.exists(rsync_path):
+        raise ValueError("Bad value for rsync_path: %s" % rsync_path)
 
     local_path = os.path.abspath(local_path)
     remote_path = os.path.abspath(remote_path)
-
     if snapshot_path.count(local_path):
         local_snapshot_path = snapshot_path
         remote_snapshot_path = snapshot_path.replace(local_path, remote_path)
     elif snapshot_path.count(remote_path):
         remote_snapshot_path = snapshot_path
         local_snapshot_path = snapshot_path.replace(remote_path, local_path)
+    else:
+        raise ValueError("Bad snapshot_path:\n%s" % snapshot_path)
 
-    cmd_str = "bash rsync_specific_snapshot.sh %s" % remote_snapshot_path
-    print "ATTEMPTING DOWNLOAD via RSYNC..."
-    print "CMD:\n", cmd_str
     old_path = os.getcwd()
+    print("cd %s" % rsync_path)
     os.chdir(rsync_path)
-    print os.getcwd()
+    cmd_str = "bash rsync_specific_snapshot.sh %s" % remote_snapshot_path
+    print("ATTEMPTING DOWNLOAD via CUSTOM RSYNC CMD:")
+    print(cmd_str)
     ans = os.system(cmd_str)
+    print("cd %s" % old_path)
     os.chdir(old_path)
     if int(str(ans)) != 0:
         raise ValueError("BAD DOWNLOAD: ANSWER CODE %s" % ans)

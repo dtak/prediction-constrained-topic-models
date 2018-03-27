@@ -1,0 +1,126 @@
+
+{
+    "name": "snapshot_perf_metrics_binary_outcomes",
+    "resources": [
+        {
+            "path": "snapshot_perf_metrics_$SPLIT_NAME.csv",
+            "profile": "tabular-data-resource",
+            "schema": {
+                "fields": [
+                    {
+                        "name": "JOB_PATH",
+                        "type": "string"
+                    },
+                    {
+                        "name": "TASK_PATH",
+                        "type": "string"
+                    },
+                    {
+                        "name": "TASKID",
+                        "type": "integer"
+                    },
+                    {
+                        "name": "SPLIT_NAME",
+                        "type": "string"
+                    },
+                    {
+                        "name": "N_STATES",
+                        "type": "integer"
+                    },
+                    {
+                        "name": "WEIGHT_Y",
+                        "type": "number"
+                    },
+                    {
+                        "name": "WEIGHT_X",
+                        "type": "number"
+                    },
+                    {
+                        "name": "ALPHA",
+                        "type": "number"
+                    },
+                    {
+                        "name": "LAMBDA_W",
+                        "type": "number"
+                    },
+                    {
+                        "name": "TAU",
+                        "type": "number"
+                    },
+                    {
+                        "name": "INIT_NAME",
+                        "type": "string"
+                    },
+                    {
+                        "name": "ALG_NAME",
+                        "type": "string"
+                    },
+                    {
+                        "name": "FRAC_LABELS",
+                        "type": "number"
+                    },
+                    {
+                        "name": "N_BATCHES",
+                        "type": "integer"
+                    },
+                    {
+                        "name": "STEP_SIZE",
+                        "type": "number"
+                    },
+                    {
+                        "name": "DECAY_RATE",
+                        "type": "number"
+                    },
+                    {
+                        "name": "LAP",
+                        "type": "number"
+                    },
+                    {
+                        "name": "STEP",
+                        "type": "integer"
+                    },
+                    {
+                        "name": "Y_ERROR_RATE",
+                        "type": "number"
+                    },
+                    {
+                        "name": "Y_ROC_AUC",
+                        "type": "number"
+                    },
+                    {
+                        "name": "LOGPDF_X_PERTOK",
+                        "type": "number"
+                    },
+                    {
+                        "name": "LOGPDF_Y_PERDOC",
+                        "type": "number"
+                    },
+                    {
+                        "name": "LOSSMAP_TTL_PERTOK",
+                        "type": "number"
+                    },
+                    {
+                        "name": "LOSSMAP_X_PERTOK",
+                        "type": "number"
+                    },
+                    {
+                        "name": "LOSSMAP_Y_PERTOK",
+                        "type": "number"
+                    },
+                    {
+                        "name": "LOSSMAP_PI_PERTOK",
+                        "type": "number"
+                    },
+                    {
+                        "name": "LOSSMAP_W_PERTOK",
+                        "type": "number"
+                    },
+                    {
+                        "name": "LOSSMAP_TOPIC_PERTOK",
+                        "type": "number"
+                    }
+                ]
+            }
+        }
+    ]
+}
