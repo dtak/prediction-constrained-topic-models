@@ -90,6 +90,13 @@ def train_slda_model(
         seed=user_kwargs_P['seed'],
         **model_hyper_P)
 
+    # Setup perf_metrics_pi_optim_kwargs
+    perf_metrics_pi_optim_kwargs = dict()
+    for key in user_kwargs_P.keys():
+        if key.startswith('perf_metrics_pi_'):
+            std_key = key.replace('perf_metrics_', '')
+            perf_metrics_pi_optim_kwargs[std_key] = user_kwargs_P.pop(key)
+
     # Load training algorithm
     if alg_name == 'grad_descent_minimizer':
         alg_mod = grad_descent_minimizer
@@ -112,6 +119,7 @@ def train_slda_model(
             datasets_by_split=datasets_by_split,
             model_hyper_P=model_hyper_P,
             dim_P=dim_P,
+            perf_metrics_pi_optim_kwargs=perf_metrics_pi_optim_kwargs,
             ),
         n_batches=n_batches,
         **user_kwargs_P)
@@ -235,15 +243,22 @@ if __name__ == '__main__':
 
     ###
     # Per-doc estimation kwargs
+    pi_optim_kwargs = model_slda.\
+        est_local_params__single_doc_map.DefaultDocTopicOptKwargs
     parser.add_argument(
         '--pi_max_iters_first_train_lap',
         type=float,
-        default=(
-            model_slda.\
-            est_local_params__single_doc_map.DefaultDocTopicOptKwargs['pi_max_iters']),
+        default=pi_optim_kwargs['pi_max_iters'],
         help=(
             "Max iters for pi estimation allowed on first lap."
             + " Will gradually ramp up to pi_max_iters after 50% of laps"))
+    for key in sorted(pi_optim_kwargs.keys()):
+        default_val = pi_optim_kwargs[key]
+        parser.add_argument(
+            '--perf_metrics_' + key,
+            type=type(default_val),
+            default=default_val,
+            )
 
     ###
     # Random seed

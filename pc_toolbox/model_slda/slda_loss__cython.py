@@ -40,7 +40,7 @@ def calc_loss__slda(
         pi_estimation_mode='missing_y',
         active_proba_thr=0.005,
         fixed_pi_DK=None,
-        **kwargs):
+        **pi_opt_kwargs):
     ''' Compute loss of provided dataset under sLDA topic model.
 
     Returns
@@ -116,7 +116,7 @@ def calc_loss__slda(
                     topics_KV=topics_KV,
                     convex_alpha_minus_1=convex_alpha_minus_1,
                     method='cython',
-                    )
+                    **pi_opt_kwargs)
         elif pi_estimation_mode == 'observe_y':
             # THIS CALL IS SUPERVISED!
             pi_d_K, info_d = \
@@ -128,7 +128,7 @@ def calc_loss__slda(
                     y_d_C=np.asarray(dataset['y_DC'][d], dtype=np.int32),
                     w_CK=w_CK,
                     weight_y=float(pi_estimation_weight_y),
-                    )
+                    **pi_opt_kwargs)
         else:
             raise ValueError(
                 "Unrecognized pi_estimation_mode: %s" % (
@@ -249,7 +249,7 @@ def calc_loss__slda(
                 step_size_per_doc=step_size_per_doc,
                 restarts_per_doc=restarts_per_doc,
                 n_active_per_doc=n_active_per_doc,
-                ),
+                **pi_opt_kwargs),
             )
         return ans_dict
     else:

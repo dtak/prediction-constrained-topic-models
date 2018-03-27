@@ -41,6 +41,7 @@ def calc_perf_metrics_for_snapshot_param_dict(
         verbose_timings=False,
         disable_output=False,
         do_force_update_w_CK=0,
+        perf_metrics_pi_optim_kwargs=None,
         **unused_kwargs):
     ''' Compute performance metrics at provided topic model param dict.
 
@@ -56,6 +57,8 @@ def calc_perf_metrics_for_snapshot_param_dict(
         * snapshot_perf_metrics_valid.csv
         * snapshot_perf_metrics_test.csv
     '''
+    if perf_metrics_pi_optim_kwargs is None:
+        perf_metrics_pi_optim_kwargs = dict()
 
     etimes = OrderedDict()
     etimes = start_timer_segment(etimes, 'total')
@@ -113,7 +116,8 @@ def calc_perf_metrics_for_snapshot_param_dict(
             lambda_w=lambda_w,
             pi_estimation_mode='missing_y',
             pi_estimation_weight_y=0.0,
-            return_dict=True)
+            return_dict=True,
+            **perf_metrics_pi_optim_kwargs)
         etimes = stop_timer_segment(etimes, '%s_calc_lossmap' % split_name)
         assert 'summary_msg' in ans_dict
 
@@ -225,18 +229,28 @@ def calc_perf_metrics_for_snapshot_param_dict(
         if not disable_output:
             csv_fpath = os.path.join(output_path, 'snapshot_perf_metrics_%s.csv' % split_name)
             ppcsv_fpath = os.path.join(output_path, 'pretty_snapshot_perf_metrics_%s.csv' % split_name)
-        if int(cur_step) == 0:
-            with open(csv_fpath, 'w') as f:
-                header_str = ','.join(['%s' % s for s in col_order])
-                f.write(header_str + "\n")
-            with open(ppcsv_fpath, 'w') as f:
-                header_str = ','.join(['%20s' % s for s in col_order])
-                f.write(header_str + "\n")
-        with open(csv_fpath, 'a') as f:
-            f.write(info_str)
-        with open(ppcsv_fpath, 'a') as f:
-            f.write(ppinfo_str)
 
+            if int(cur_step) == 0:
+                with open(csv_fpath, 'w') as f:
+                    header_str = ','.join(['%s' % s for s in col_order])
+                    f.write(header_str + "\n")
+                with open(ppcsv_fpath, 'w') as f:
+                    header_str = ','.join(['%20s' % s for s in col_order])
+                    f.write(header_str + "\n")
+            with open(csv_fpath, 'a') as f:
+                f.write(info_str)
+            with open(ppcsv_fpath, 'a') as f:
+                f.write(ppinfo_str)
+
+            pi_summary_txt_fpath = os.path.join(
+                output_path, 'perf_metrics_pi_optim_summaries_%s.txt' % split_name)
+            lap_prefix = 'lap %011.3f  ' % cur_lap
+            with open(pi_summary_txt_fpath, 'a') as f:
+                f.write(
+                    lap_prefix + ans_dict['summary_msg'] + "\n")
+
+
+    # Write timings to txt file for comparison
     msg = pprint_timer_segments(etimes, prefix='lap%011.3f' % (cur_lap))
     if verbose_timings:
         pprint(msg)

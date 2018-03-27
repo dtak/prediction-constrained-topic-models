@@ -37,10 +37,14 @@ do
     export step_size=$step_size
 
 
-## Per-doc inference settings
+## Per-doc inference settings at training
 export pi_max_iters=5
 export pi_step_size=0.05
 export pi_max_iters_first_train_lap=3
+
+## Per-doc inference settings at perf-metric (eval step)
+export perf_metrics_pi_max_iters=50
+
 
 # =============================== INIT SETTINGS
 export init_model_path=none

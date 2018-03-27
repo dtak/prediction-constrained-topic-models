@@ -15,18 +15,20 @@ def make_readable_summary_for_pi_DK_estimation(
         converged_per_doc=None,
         n_active_per_doc=None,
         restarts_per_doc=None,
+        pi_converge_thr=None,
         **unused_kws):
     if n_docs_completed is None:
         n_docs_completed = n_docs
     msg = "completed %d/%d docs" % (n_docs_completed, n_docs)
     if elapsed_time_sec is not None:
         msg += " after %7.2f sec" % (elapsed_time_sec)
-
     if converged_per_doc is not None:
         n_docs_converged = np.sum(converged_per_doc[:n_docs_completed])
     if n_docs_converged is not None:
         msg += " %6d not converged" % (
             n_docs_completed - n_docs_converged)
+    if pi_converge_thr is not None:
+        msg += " %6.2g conv_thr" % pi_converge_thr
     if n_docs_restarted is not None:
         msg += " %6d restarted" % (n_docs_restarted)
     if iters_per_doc is not None:
