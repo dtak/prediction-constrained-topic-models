@@ -1,25 +1,22 @@
-export XHOST_SSH_ADDR=mchughes@odyssey
-export XHOST_REMOTE_PATH=/n/dtak/mchughes/slda_results/bow_pang_movie_reviews/v20170929_split_80_10_10/
-export XHOST_LOCAL_PATH=/results/bow_pang_movie_reviews_v20170929/
 
+pushd $PC_REPO_DIR/pc_toolbox/utils_vizhtml/
 
-#pushd $SSCAPEROOT/notebooks/html_interp_viz/
-pushd $SSCAPEROOT/externals/topic_models/utils_viz_topic_models/
+template_html='<pre>TRAIN AUC=$TRAIN_Y_ROC_AUC<br />VALID AUC=$VALID_Y_ROC_AUC<br /> TEST AUC=$TEST_Y_ROC_AUC<nbsp;></pre>'
 
-for show_enriched_words in 0 1
+for rank_words_by in 'proba_word_given_topic' 'proba_topic_given_word'
 do
-
 python make_html_collection_from_csv.py \
-    --snapshot_csv_path $XHOST_LOCAL_PATH/per_snapshot_srcfiles.csv \
-    --html_output_path /tmp/html_camready/movies/rerank_words="$show_enriched_words"/ \
-    --field_order LEGEND_NAME,LABEL_NAME,FRAC_LABELS,N_STATES \
+    --snapshot_csv_path $XHOST_LOCAL_PATH/best_runs_20180301_pcslda_tensorflow/best_snapshots_PC_sLDA.csv \
+    --html_output_path /tmp/movie_reviews_html/rank_words_by="$rank_words_by"/ \
+    --field_order LEGEND_NAME,LABEL_NAME,N_STATES,WEIGHT_Y \
     --ncols 4 \
     --n_chars_per_word 20 \
     --n_words_per_topic 15 \
-    --show_enriched_words $show_enriched_words \
+    --rank_words_by $rank_words_by \
     --show_longer_words_via_tooltip 1 \
+    --metrics_template_html "$template_html" \
 
 done
 
-# return home
+
 popd

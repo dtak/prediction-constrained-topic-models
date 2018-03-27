@@ -73,6 +73,8 @@ def select_best_from_many_runs(
         target_y_name=None,
         all_y_names=None,
         col_names_to_use_at_selection=['N_STATES'],
+        col_names_to_keep="",
+        col_names_to_keep_per_split="",
         min_lap_to_use_at_selection=10,
         split_name_to_use_at_selection='VALID',
         selection_score_colname='LOSS_X',
@@ -135,6 +137,10 @@ def select_best_from_many_runs(
     results_path_patterns = force_list_of_strings(results_path_patterns)
     col_names_to_use_at_selection = force_list_of_strings(
         col_names_to_use_at_selection)
+    col_names_to_keep = force_list_of_strings(
+        col_names_to_keep)
+    col_names_to_keep_per_split = force_list_of_strings(
+        col_names_to_keep_per_split)
 
     # Load df for all runs that match the query
     all_matching_runs_df = load_df_from_all_folders_matching_list_of_patterns(
@@ -173,20 +179,19 @@ def select_best_from_many_runs(
         score_ranking_func=selection_score_ranking_func,
         target_splitname=split_name_to_use_at_selection,
         )
-    from IPython import embed; embed()
     row_dict_list = list()
     # Write the legend names to output path
     for cur_legend_name in np.unique(best_df['LEGEND_NAME_ASCII'].values):
 
         ## Make symlink to best run's task_path directory
         cur_query_str = (
-            "LEGEND_NAME_ASCII == '%s' and SPLIT_NAME == 'TRAIN' and IS_BEST_SNAPSHOT > 0"
+            "LEGEND_NAME_ASCII == '%s' and IS_BEST_SNAPSHOT > 0"
             % (cur_legend_name)
             )
         # Prepare existing path
         best_snapshot_df = best_df.query(cur_query_str)
-        assert best_snapshot_df.shape[0] == 1
-        best_task_path = best_snapshot_df['BEST_TASK_PATH'].values[0]
+        assert best_snapshot_df.shape[0] == len(SPLIT_NAMES)
+        best_task_path = best_snapshot_df['TASK_PATH_AT_BEST_SNAPSHOT'].values[0]
         best_task_path = best_task_path.rstrip(os.path.sep)
         assert os.path.exists(best_task_path)
         # Prepare symlink path
@@ -207,8 +212,8 @@ def select_best_from_many_runs(
 
         # Prepare existing snapshot path (download content if necessary)
         snapshot_path = make_snapshot_path_for_lap(
-            task_path=best_snapshot_df['BEST_TASK_PATH'].values[0],
-            lap=best_snapshot_df['BEST_LAP'].values[0],
+            task_path=best_snapshot_df['TASK_PATH_AT_BEST_SNAPSHOT'].values[0],
+            lap=best_snapshot_df['LAP_AT_BEST_SNAPSHOT'].values[0],
             )
         if not os.path.exists(snapshot_path):
             download_snapshot(snapshot_path)
@@ -234,12 +239,21 @@ def select_best_from_many_runs(
                **new_GP)
 
         ## Append to .csv file
-        #LEGEND_NAME,N_STATES,FRAC_LABELS,LABEL_NAME,SCORE_METRIC,SCORE_LABEL,SNAPSHOT_SRCFILE,TXTSRCFILES_PATH
-
         row_dict = OrderedDict()
         row_dict['LEGEND_NAME'] = legend_name
-        row_dict['N_STATES'] = best_snapshot_df['N_STATES'].values[0]
-        row_dict['FRAC_LABELS'] = best_snapshot_df['FRAC_LABELS'].values[0]
+        for key in col_names_to_use_at_selection:
+            row_dict[key] = best_snapshot_df[key].values[0]
+        for key in col_names_to_keep:
+            row_dict[key] = best_snapshot_df[key].values[0]            
+
+        for split_name in SPLIT_NAMES:
+            best_split_df = best_snapshot_df.query("SPLIT_NAME == '%s'" % split_name)
+            assert best_split_df.shape[0] == 1
+            assert isinstance(col_names_to_keep_per_split, list)
+            for key in col_names_to_keep_per_split:
+                split_key = "%s_%s" % (split_name.upper(), key)
+                row_dict[split_key] = best_split_df[key].values[0]
+        row_dict['LAP'] = best_snapshot_df['LAP'].values[0]
         row_dict['LABEL_NAME'] = best_snapshot_df['TARGET_LABEL_NAME'].values[0]
         row_dict['SNAPSHOT_SRCFILE'] = cur_symlink_snapshot_path
         row_dict['TXTSRCFILES_PATH'] = txt_src_path
@@ -316,7 +330,7 @@ def select_best_df_at_each_value_of_specific_vars(
     best_df : pandas DataFrame
     '''
     if disp_keys is None:
-        disp_keys = ['BEST_LAP', 'TASKID'] + keys
+        disp_keys = ['LAP_AT_BEST_SNAPSHOT', 'TASKID'] + keys
     query = query.replace("$query_min_lap", str(query_min_lap))
     query = query.replace("$target_splitname", str(target_splitname))
     pprint("Finding snapshots with %s of %s" % (
@@ -395,7 +409,6 @@ def select_best_df_at_each_value_of_specific_vars(
     best_df = pd.concat(best_df_list)
 
     pprint("ON SPLIT %s:" % (target_splitname))
-    best_df['BEST_LAP'] = 1.0 * best_df['LAP_AT_BEST_SNAPSHOT'].values
     q_df = best_df.query(
         "IS_BEST_SNAPSHOT > 0 and SPLIT_NAME == '%s'"
             % target_splitname)
@@ -484,7 +497,7 @@ def make_best_job_df(
     best_job_df['IS_BEFORE_BEST_SNAPSHOT'] = np.asarray(
         best_job_df['LAP'].values.copy() <= best_lap_idx[best_job_idx],
         dtype=np.int32)
-    best_job_df['BEST_TASK_PATH'] = os.path.join(
+    best_job_df['TASK_PATH_AT_BEST_SNAPSHOT'] = os.path.join(
         job_paths[best_job_idx],
         best_task_idstr_list[best_job_idx])
     best_job_df['IS_BEST_SNAPSHOT'] = np.asarray(
@@ -809,7 +822,20 @@ def read_args_from_stdin_and_run():
         '--col_names_to_use_at_selection',
         default='N_STATES,FRAC_LABELS',
         type=str,
-        help="Name of csv columns for which unique values each get separate best"
+        help="Name of csv columns for which unique values each get separate best",
+        )
+    parser.add_argument(
+        '--col_names_to_keep_per_split',
+        default='',
+        type=str,
+        help=("Name of csv columns to keep in resulting best_snapshots.csv"
+            + " Will be queried at each possible split"),
+        )
+    parser.add_argument(
+        '--col_names_to_keep',
+        default='',
+        type=str,
+        help="Name of csv columns to keep in resulting best_snapshots.csv",
         )
     # Parse the input args
     args, unk_list = parser.parse_known_args()

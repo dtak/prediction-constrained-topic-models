@@ -11,9 +11,11 @@ from est_local_params__many_doc_map import (
 
 import slda_utils__dataset_manager
 import slda_utils__param_io_manager
+save_topic_model_param_dict = slda_utils__param_io_manager.save_topic_model_param_dict
+load_topic_model_param_dict = slda_utils__param_io_manager.load_topic_model_param_dict
+
 import slda_utils__param_manager
 import slda_utils__init_manager
-
 
 import slda_loss__autograd
 import slda_loss__cython

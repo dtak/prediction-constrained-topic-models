@@ -8,6 +8,8 @@ import glob
 from distutils.dir_util import mkpath
 from collections import OrderedDict
 
+from pc_toolbox.model_slda import (
+    load_topic_model_param_dict)
 from utils_viz_topic_model import show_topics_and_weights
 
 TABLE_ROW_TEMPLATE_STR = (
@@ -88,10 +90,19 @@ if __name__ == '__main__':
     parser.add_argument('--n_words_per_topic', type=int, default=15)
     parser.add_argument('--n_chars_per_word', type=int, default=16)
     parser.add_argument('--n_rows_stop', type=int, default=None)
-    parser.add_argument('--show_enriched_words', type=int, default=0)
+    parser.add_argument('--rank_words_by',
+        type=str,
+        default='proba_word_given_topic')
+    parser.add_argument('--sort_topics_by',
+        type=str,
+        default='w_CK')
     parser.add_argument('--show_longer_words_via_tooltip', type=int, default=0)
     parser.add_argument('--pprint_snapshot_list_and_exit', type=int, default=0)
     parser.add_argument('--add_bias_term_to_w_CK', type=float, default=0.0)
+    parser.add_argument('--proba_fmt_str', type=str, default='%.5f')
+    parser.add_argument('--metrics_template_html',
+        type=str,
+        default="")
     args = parser.parse_args()
     for key in sorted(args.__dict__):
         print "--%s %s" % (key, args.__dict__[key])
@@ -104,6 +115,7 @@ if __name__ == '__main__':
 
     field_order = field_order.split(",")
     field_uvals_dict = OrderedDict()
+
     for field in field_order:
         assert field in csv_df
         # Try to convert to numeric type
@@ -149,10 +161,20 @@ if __name__ == '__main__':
                 field_uvals_dict, row_df, field)
             html_lines.append(cur_table_html)
 
-        srcfile = row_df['SNAPSHOT_SRCFILE']
-
+        srcfile = os.path.abspath(row_df['SNAPSHOT_SRCFILE'])
         html_lines.append(
             SAFE_PRE_TAG + "\nSNAPSHOT_SRCFILE:\n" + srcfile + "</pre><nbsp;>")
+
+        cur_metrics_html = "" + metrics_template_html
+        for key in csv_df.columns:
+            dollar_key = "$" + key
+            if cur_metrics_html.count(dollar_key):
+                try:
+                    val = "%.3f" % (float(row_df[key]))
+                except TypeError:
+                    val = str(row_df[key])
+                cur_metrics_html = cur_metrics_html.replace(dollar_key, val)
+        html_lines.append(cur_metrics_html.replace("<pre>", SAFE_PRE_TAG))
 
         if srcfile.endswith(".txt"):
             html_lines.append(SAFE_PRE_TAG)
@@ -173,18 +195,19 @@ if __name__ == '__main__':
             label_list = np.atleast_1d(np.loadtxt(
                 os.path.join(txtsrc_path, 'Y_colnames.txt'),
                 dtype=unicode)).tolist()
+            param_dict = load_topic_model_param_dict(
+                snapshot_path=snapshot_path)
             html_str = show_topics_and_weights(
-                snapshot_path=snapshot_path,
-                sort_by='w_CK',
+                param_dict=param_dict,
+                sort_topics_by=sort_topics_by,
                 add_bias_term_to_w_CK=add_bias_term_to_w_CK,
                 vocab_list=vocab_list,
                 y_ind=label_list.index(label_name),
-                do_html=True,
-                show_enriched_words=show_enriched_words,
-                n_top_words=n_words_per_topic,
-                wordSizeLimit=n_chars_per_word,
+                rank_words_by=rank_words_by,
+                n_words_per_topic=n_words_per_topic,
+                n_chars_per_word=n_chars_per_word,
                 show_longer_words_via_tooltip=show_longer_words_via_tooltip,
-                proba_fmt_str='%.3f',
+                proba_fmt_str=proba_fmt_str,
                 ncols=ncols)
             html_lines.append(html_str)
 
