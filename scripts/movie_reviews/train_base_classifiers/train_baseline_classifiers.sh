@@ -20,6 +20,8 @@ do
     export classifier_name=$classifier_name
     export class_weight_opts='none'
     export preproc_X='none'
+    export c_logspace_arg_str=" -6,6,13"
+    export max_grid_search_steps=13
 
     export output_path="$XHOST_RESULTS_DIR/$dataset_name/$nickname-classifier_name=$classifier_name/1/"
     bash $PC_REPO_DIR/scripts/launch_job_on_host_via_env.sh || { exit 1; }
