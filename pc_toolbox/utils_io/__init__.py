@@ -32,7 +32,9 @@ from util_setup import (
 
 from util_io_csr import (
     load_csr_matrix,
-    save_csr_matrix)
+    save_csr_matrix,
+    load_csr_matrix_from_ldac_txtfile,
+    )
 
 from util_io_txt import (
     load_list_of_strings_from_txt,
