@@ -33,6 +33,7 @@ import itertools
 import time
 import scipy.sparse
 import copy
+import dill
 
 from collections import OrderedDict
 from distutils.dir_util import mkpath

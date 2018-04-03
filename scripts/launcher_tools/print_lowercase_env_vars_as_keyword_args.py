@@ -25,8 +25,6 @@ def print_lowercase_env_vars_as_keyword_args():
         if key[0].islower():
             val = os.environ[key]
             # Manually remove some unnecessary env vars
-            if val.count(" ") > 0:
-                continue
             if key in XHOST_PREFIXES_TO_SKIP:
                 continue
 
@@ -44,11 +42,16 @@ def print_lowercase_env_vars_as_keyword_args():
             if val.startswith("-") and val[1].isdigit():
                 val = '" ' + val + '"'
             # handle paths with ( or ) in them
-            elif val.count("("):
-                # wrap in parentheses
+            if val.count("("):
+                # wrap parentheses with double quotes
                 val = '"%s"' % (val)
-            else:
-                assert val.count(" ") == 0
+            elif val.count(" "):
+                assert val.count('"') == 0
+                val = '"%s"' % (val)
+
+            #else:
+            #    assert val.count(" ") == 0
+
             assert key.count(" ") == 0
             print("--%s %s" % (key, val))
 

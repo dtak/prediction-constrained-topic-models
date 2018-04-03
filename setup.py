@@ -46,6 +46,19 @@ def add_directives_to_cython_ext(ext):
     return ext
 
 setup(
+    name='pc_toolbox',
+    version='0.1',
+    description='Prediction-constrained training for supervised topic models',
+    long_description='Support code for Hughes et al AISTATS 2018',
+    classifiers=[
+    'Development Status :: 3 - Alpha',
+    'License :: OSI Approved :: MIT License',
+    'Programming Language :: Python :: 2.7',
+    ],
+    url='https://github.com/dtak/prediction-constrained-topic-models',
+    author='Michael C. Hughes',
+    author_email='mike@michaelchughes.com',
+    license='MIT',
     setup_requires=["Cython>=0.25"],
     cmdclass = {"build_ext": build_ext},
     ext_modules = make_extensions(),
