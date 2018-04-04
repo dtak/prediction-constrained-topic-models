@@ -3,7 +3,11 @@ import numpy as np
 from pc_toolbox.utils_io import pprint
 
 def get_stratified_subsample_ids(
-        y_DC=None, n_subsamples=1000, min_per_label=5, seed=42):
+        y_DC=None,
+        n_subsamples=1000,
+        min_per_label=5,
+        seed=42,
+        verbose=False):
     ''' Get row ids of examples to keep in subsample for initializing weights
 
     Returns
@@ -16,8 +20,13 @@ def get_stratified_subsample_ids(
     >>> y_DC[200:205, 0] = 1
     >>> y_DC[400:405, 1] = 1
     >>> y_DC[:995, 2] = 1
-    >>> mask = get_stratified_subsample_ids(y_DC, 100, min_per_label=5)
-    >>> print mask
+    >>> mask = get_stratified_subsample_ids(y_DC, 10, min_per_label=5)
+    >>> mask.tolist()
+    [200, 201, 202, 203, 204, 400, 401, 402, 403, 404, 995, 996, 997, 998, 999]
+    >>> np.sum(y_DC[mask] == 0, axis=0).tolist()
+    [10, 10, 10]
+    >>> np.sum(y_DC[mask] == 1, axis=0).tolist()
+    [5, 5, 5]
     '''
     n_labels = y_DC.shape[1]
     n_examples = y_DC.shape[0]
@@ -50,8 +59,9 @@ def get_stratified_subsample_ids(
         size = np.sum(keep_mask)
     assert size >= n_subsamples
     sums_subsample = np.sum(y_DC[keep_mask], axis=0)
-    pprint('Minority examples per label in dataset of size %d' % n_examples)
-    pprint(' '.join(['%4d' % val for val in sums_total]))
-    pprint('Minority examples per label in subsample of size %d:' % size)
-    pprint(' '.join(['%4d' % val for val in sums_subsample]))
+    if verbose:
+        pprint('Minority examples per label in dataset of size %d' % n_examples)
+        pprint(' '.join(['%4d' % val for val in sums_total]))
+        pprint('Minority examples per label in subsample of size %d:' % size)
+        pprint(' '.join(['%4d' % val for val in sums_subsample]))
     return np.flatnonzero(keep_mask)
