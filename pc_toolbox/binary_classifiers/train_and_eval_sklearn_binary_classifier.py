@@ -405,8 +405,6 @@ def default_param_grid(classifier_name, c_logspace_arg_str='-6,4,6', **kwargs):
     C_range = np.logspace(*map(float, c_logspace_arg_str.split(','))) 
     if classifier_name == 'logistic_regression':
         return OrderedDict([
-            #('preproc:X', ['none', 'normalize_l1', 'binarize'],
-            #('norm', ['none', 'l1', 'bin']),
             ('penalty', ['l2', 'l1']),
             ('class_weight', [None]),
             ('C', C_range),
@@ -414,19 +412,17 @@ def default_param_grid(classifier_name, c_logspace_arg_str='-6,4,6', **kwargs):
             ])
     elif classifier_name == 'extra_trees':
         return OrderedDict([
-            #('norm', ['none']),
             ('class_weight', [None]),
             ('n_estimators', np.asarray([16, 64, 256])),
             ('max_features', np.asarray([0.04, 0.16, 0.64])),
-            #('min_samples_split', np.asarray([2, 16])),
             ('min_samples_leaf', np.asarray([4, 16, 64, 256])), # bigger seems to be better
+            ('thr_', [0.5]),
             ])
     elif classifier_name == 'svm_with_linear_kernel':
         return OrderedDict([
             ('kernel', ['linear']),
             ('C', C_range),
             ('class_weight', [None]),
-            #('norm', ['none', 'l1']),
             ('probability', [False]),
             ])
     elif classifier_name == 'svm_with_rbf_kernel':
@@ -435,7 +431,6 @@ def default_param_grid(classifier_name, c_logspace_arg_str='-6,4,6', **kwargs):
             ('C', C_range),
             ('gamma', np.logspace(-6, 6, 5)),
             ('class_weight', [None]),
-            #('norm', ['none', 'l1']),
             ('probability', [False]),
             ])
     elif classifier_name == 'k_nearest_neighbors':
@@ -524,6 +519,12 @@ def make_constructor_and_evaluator_funcs(
         assert yhat.ndim == 1
         return np.sum(y == yhat) / float(y.size)
 
+    def calc_f1_score(clf, x, y):
+        yhat = clf.predict(x)
+        assert y.ndim == 1
+        assert yhat.ndim == 1
+        return f1_score(y, yhat, pos_label=clf.classes_[1])
+
     def make_confusion_matrix_report(clf, x, y):
         assert len(clf.classes_) == 2
         assert clf.classes_[0] == 0
@@ -540,6 +541,7 @@ def make_constructor_and_evaluator_funcs(
         r_str = header
         r_str += make_confusion_matrix_report(clf, x, y)
         r_str += u"acc %.4f\n" % calc_accuracy_score(clf, x, y)
+        r_str += u" f1 %.4f\n" % calc_f1_score(clf, x, y)
         r_str += u"auc %.4f\n" % calc_auc_score(clf, x, y)
         return r_str
 
@@ -841,22 +843,29 @@ def train_and_eval_clf_with_best_params_via_grid_search(
 
     ## Now tuning threshold, if applicable
     if isinstance(best_clf.named_steps['clf'], ThresholdClassifier):
-        yproba_neg = best_clf.predict_proba(x_va)[:,0]
-        thr_min = np.maximum(0.001, np.min(yproba_neg))
-        thr_max = np.minimum(0.999, np.max(yproba_neg))
+        yproba_class1 = best_clf.predict_proba(x_va)[:,1]
+        if verbose:
+            pprint("Percentiles of Pr(y=1) on validation...")
+            for perc in [0, 1, 10, 50, 90, 99, 100]:
+                perc_str = "  %4d%% %.4f" % (
+                    perc,
+                    np.percentile(yproba_class1, perc))
+                pprint(perc_str)
+        thr_min = np.maximum(0.001, np.min(yproba_class1))
+        thr_max = np.minimum(0.999, np.max(yproba_class1))
         thr_grid = np.linspace(thr_min, thr_max, num=101)
         if verbose:
             pprint("Searching thresholds...")
-            pprint("thr_grid = %.4f, %.4f, ... %.4f" % (
-                thr_grid[0], thr_grid[1], thr_grid[-1]))
+            pprint("thr_grid = %.4f, %.4f, %.4f ... %.4f, %.4f" % (
+                thr_grid[0], thr_grid[1], thr_grid[2], thr_grid[-2], thr_grid[-1]))
         score_grid = np.zeros_like(thr_grid, dtype=np.float64)
         tmp_clf = copy.deepcopy(best_clf)
         for gg, thr in enumerate(thr_grid):
-            tmp_clf.named_steps['clf'].threshold = thr
+            tmp_clf.named_steps['clf'].set_threshold(thr)
             yhat = tmp_clf.predict(x_va)
             score_grid[gg] = f1_score(y_va, yhat, pos_label=1)
         gg_best = np.argmax(score_grid)
-        best_clf.named_steps['clf'].threshold = thr_grid[gg_best]
+        best_clf.named_steps['clf'].set_threshold(thr_grid[gg_best])
         if verbose:
             pprint("------")
             pprint(" best threshold by f1 score on validation")
@@ -932,14 +941,53 @@ def train_and_eval_clf_with_best_params_via_grid_search(
 
 
 class ThresholdClassifier(BaseEstimator, ClassifierMixin):
-    def __init__(self, clf=None, threshold=0.5, classes=[0,1]):
-        """ Make hard predictions at custom-tuned thresholds """
+    def __init__(self, clf=None, proba_thr_for_class1=0.5, classes=[0,1]):
+        """ Make hard predictions at custom-tuned thresholds
+
+        Args
+        ----
+        clf : sklearn ClassifierMixin
+        threshold : float within (0.0, 1.0)
+            Provides value at which we call labels of second category
+        classes : list
+            Provides numeric/string values of class labels
+
+        Examples
+        --------
+        # Create toy dataset with 80% label=0, 20% label=1
+        >>> prng = np.random.RandomState(0)
+        >>> x_N = prng.randn(100, 1)
+        >>> y_N = np.asarray(prng.rand(100) > 0.8, dtype=np.int32)
+
+        # 'Train' neighbor classifier
+        >>> clf = KNeighborsClassifier(n_neighbors=100);
+        >>> clf = clf.fit(x_N, y_N)
+        >>> clf.classes_
+        array([0, 1], dtype=int32)
+
+        # A classifier with 0.5 threshold calls all 0
+        >>> thr050 = ThresholdClassifier(clf, 0.5)
+        >>> thr050.predict(x_N).min()
+        0
+
+        # A classifier with 0.15 threshold calls all 1 
+        >>> thr015 = ThresholdClassifier(clf, 0.15)
+        >>> thr015.predict(x_N).min()
+        1
+
+        # A classifier with 0.95 threshold calls all 0 
+        >>> thr015 = ThresholdClassifier(clf, 0.95)
+        >>> thr015.predict(x_N).min()
+        0
+        """
         self.clf = clf
-        self.threshold = threshold
+        self.proba_thr_for_class1 = proba_thr_for_class1
         try:
             self.classes_ = clf.classes_
         except AttributeError:
             self.classes_ = classes
+        assert len(self.classes_) == 2
+
 
     def fit(self, x, y):
         return self.clf.fit(x, y)
@@ -951,8 +999,21 @@ class ThresholdClassifier(BaseEstimator, ClassifierMixin):
         return self.clf.predict_proba(x)
 
     def predict(self, x):
-        yproba_pos_N = self.clf.predict_proba(x)[:,0]
-        return np.where(yproba_pos_N > self.threshold, *self.classes_)
+        ''' Make thresholded predictions
+
+        Returns
+        -------
+        yhat_N : 1D array of class labels
+        '''
+        yproba_class1_N = self.clf.predict_proba(x)[:,1]
+        # Recall that np.where assigns as follows:
+        # first value in self.classes when True
+        # second value when False
+        yhat_N = np.where(yproba_class1_N <= self.proba_thr_for_class1, *self.classes_)
+        return yhat_N
+
+    def set_threshold(self, thr):
+        self.proba_thr_for_class1 = thr
 
 if __name__ == '__main__':
     read_args_from_stdin_and_run()
