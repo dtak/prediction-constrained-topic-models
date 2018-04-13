@@ -293,6 +293,9 @@ def load_df_from_all_folders_matching_list_of_patterns(
 
         # Append to list of all matching dataframes
         list_of_match_df.append(cur_alg_df)
+
+
+
     # Create all matching DataFrame
     all_matching_runs_df = pd.concat(list_of_match_df)
     pprint("<<< END   load_df_from_all_folders_that_match_pattern")
@@ -568,6 +571,8 @@ def load_df_from_all_folders_that_match_pattern(
     df : pandas DataFrame
     '''
     src_path_list = [s for s in sorted(glob.glob(src_path_pattern))]
+    if len(src_path_list) == 0:
+        raise ValueError("ERROR: No snapshot csv files for provided pattern:%s" % src_path_pattern)
     mega_df = None
     df_list = list()
     column_names = load_default_column_name_dict(
