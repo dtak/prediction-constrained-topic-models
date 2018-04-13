@@ -46,7 +46,8 @@ def print_lowercase_env_vars_as_keyword_args():
                 # wrap parentheses with double quotes
                 val = '"%s"' % (val)
             elif val.count(" "):
-                assert val.count('"') == 0
+                if val.count('"') > 0:
+                    raise ValueError("%s:%s" % (key, val))
                 val = '"%s"' % (val)
 
             #else:

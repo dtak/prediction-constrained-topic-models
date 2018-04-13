@@ -45,10 +45,13 @@ export perf_metrics_pi_max_iters=50
 
 
 # =============================== INIT SETTINGS
-export init_model_path=none
-for init_name in rand_smooth
+# =============================== INIT SETTINGS
+for init_name in good_loss_x_K4 good_loss_pc_K4
 do
+
+    export init_model_path=$dataset_path"/"$init_name"_param_dict.dump"
     export init_name=$init_name
+    export n_states=004
 
 # =============================== MODEL HYPERS
 export alpha=1.100
@@ -61,10 +64,6 @@ export weight_x=1.0
 for weight_y in 10.0 02.0 01.0
 do
     export weight_y=$weight_y
-
-for n_states in 004
-do
-    export n_states=$n_states
 
     export output_path="$XHOST_RESULTS_DIR/$dataset_name/$nickname-n_batches=$n_batches-lossandgrad_mod=$lossandgrad_mod_name-n_states=$n_states-alpha=$alpha-tau=$tau-lambda_w=$lambda_w-init_name=$init_name-alg_name=$alg_name-weight_x=$weight_x-weight_y=$weight_y-step_size=$step_size/1/"
 

@@ -24,7 +24,9 @@ from pc_toolbox.utils_io import (
     stop_timer_segment,
     pprint_timer_segments,
     )
-
+from pc_toolbox.topic_quality_metrics import (
+    calc_coherence_metrics as coh
+    )
 def calc_perf_metrics_for_snapshot_param_dict(
         param_dict=None,
         topics_KV=None,
@@ -100,6 +102,10 @@ def calc_perf_metrics_for_snapshot_param_dict(
         output_data_type = 'binary'
     else:
         output_data_type = 'real'
+
+    # Count number of docs for which at least one pair of each vocab word occurs
+    _, ndocs_csc_VV = coh.calc_pairwise_cooccurance_counts(
+        dataset=datasets_by_split['train'])
 
     split_names = ['train', 'valid', 'test']
     for split_name in split_names:
@@ -198,6 +204,31 @@ def calc_perf_metrics_for_snapshot_param_dict(
                 rmse = np.sqrt(np.mean(np.square(y_true_c_D - y_est_c_D)))
                 info_dict['y_%d_rmse' % c] = rmse
         etimes = stop_timer_segment(etimes, '%s_calc_y_metrics' % split_name)
+
+        ## COHERENCE
+        etimes = start_timer_segment(etimes, '%s_calc_coher_metrics' % split_name)
+        K = topics_KV.shape[0]
+        npmi_K = np.zeros(K)
+        for k in range(K):
+            # Select at most 20 vocab words per topic
+            # But if fewer than that take up 90% of the mass, take only those
+            top_vocab_ids = np.argsort(-1*topics_KV[k])[:20]
+            cumsum_mass = np.cumsum(topics_KV[k, top_vocab_ids])
+            m = np.searchsorted(cumsum_mass, 0.9)
+            top_vocab_ids = top_vocab_ids[:(m+1)]
+            npmi_K[k], _ = coh.calc_npmi_and_pmi_coherence_for_top_ranked_terms_in_topic(
+                ndocs_csc_VV=ndocs_csc_VV,
+                top_vocab_ids=top_vocab_ids,
+                pair_smooth_eps=0.1)
+        if K < 10:
+            perc_list = [0, 50, 100]
+        else:
+            perc_list = [0, 10, 50, 90, 100]
+        for perc in perc_list:
+            pstr = '%06.2f' % perc
+            info_dict['topic_npmi_p' + pstr] = np.percentile(npmi_K, perc)
+
+        etimes = stop_timer_segment(etimes, '%s_calc_coher_metrics' % split_name)
 
 
         info_dict['losstrain_weight_y'] = weight_y
