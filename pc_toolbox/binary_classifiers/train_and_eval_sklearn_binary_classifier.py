@@ -32,8 +32,8 @@ import argparse
 import itertools
 import time
 import scipy.sparse
-import copy
 import dill
+import copy
 
 from collections import OrderedDict
 from distutils.dir_util import mkpath
@@ -843,40 +843,72 @@ def train_and_eval_clf_with_best_params_via_grid_search(
 
     ## Now tuning threshold, if applicable
     if isinstance(best_clf.named_steps['clf'], ThresholdClassifier):
-        yproba_class1 = best_clf.predict_proba(x_va)[:,1]
-        if verbose:
-            pprint("Percentiles of Pr(y=1) on validation...")
-            for perc in [0, 1, 10, 50, 90, 99, 100]:
-                perc_str = "  %4d%% %.4f" % (
-                    perc,
-                    np.percentile(yproba_class1, perc))
-                pprint(perc_str)
-        thr_min = np.maximum(0.001, np.min(yproba_class1))
-        thr_max = np.minimum(0.999, np.max(yproba_class1))
-        thr_grid = np.linspace(thr_min, thr_max, num=101)
+        for cur_split_name, x_split in [
+                ('train', x_tr),
+                ('test', x_te),
+                ('valid', x_va),
+                ]:
+            yproba_class1 = best_clf.predict_proba(x_split)[:,1]
+            if verbose:
+                pprint("Percentiles of clf Pr(y=1) on SPLIT = %s..." % cur_split_name)
+                perc_str_list = list()
+                for perc in [0, 1, 10, 25, 50, 75, 90, 99, 100]:
+                    perc_str = "%3d%% %.4f" % (
+                        perc,
+                        np.percentile(yproba_class1, perc))
+                    perc_str_list.append(perc_str)
+                pprint("  " + " ".join(perc_str_list))
+
+        ## DEPRECATED
+        #thr_min = np.maximum(0.001, [1])
+        #thr_max = np.minimum(0.999, np.unique(yproba_class1)[-2])
+        #thr_grid = np.linspace(thr_min, thr_max, num=101)
+
+        ## Grid search on validation over possible threshold values
+        # Make sure all candidates at least provide
+        # one instance of each class (positive and negative)
+        assert cur_split_name == 'valid'
+        nontrivial_thr_vals = np.unique(yproba_class1)[1:-1]
+
+        if nontrivial_thr_vals.size > 100:
+            # Too many for possible thr values for typical compute power
+            thr_grid = np.linspace(
+                nontrivial_thr_vals[0],
+                nontrivial_thr_vals[-1],
+                100)
+        else:
+            # Just look at all possible thresholds
+            # that give distinct operating points.
+            thr_grid = nontrivial_thr_vals
         if verbose:
             pprint("Searching thresholds...")
             pprint("thr_grid = %.4f, %.4f, %.4f ... %.4f, %.4f" % (
                 thr_grid[0], thr_grid[1], thr_grid[2], thr_grid[-2], thr_grid[-1]))
         score_grid = np.zeros_like(thr_grid, dtype=np.float64)
+        acc_grid = np.zeros_like(thr_grid, dtype=np.float64)
         tmp_clf = copy.deepcopy(best_clf)
         for gg, thr in enumerate(thr_grid):
             tmp_clf.named_steps['clf'].set_threshold(thr)
             yhat = tmp_clf.predict(x_va)
             score_grid[gg] = f1_score(y_va, yhat, pos_label=1)
+            acc_grid[gg] = accuracy_score(y_va, yhat)
         gg_best = np.argmax(score_grid)
         best_clf.named_steps['clf'].set_threshold(thr_grid[gg_best])
         if verbose:
             pprint("------")
             pprint(" best threshold by f1 score on validation")
             pprint("------")
-            pprint("thr = %.4f f1_score %.4f" % (
+            pprint("thr = %.4f f1_score %.4f acc_score %.4f" % (
                 thr_grid[gg_best],
                 score_grid[gg_best],
+                acc_grid[gg_best],
                 ))
 
     if verbose:
         pprint()
+        pprint(make_clf_report(
+            best_clf, x_tr, y_tr,
+            y_col_name + '_train'))
         pprint(make_clf_report(
             best_clf, x_va, y_va,
             y_col_name + '_valid'))
