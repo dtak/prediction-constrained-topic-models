@@ -30,7 +30,7 @@ export step_direction='adam'
 export decay_staircase=0
 export decay_interval=1
 export decay_rate=0.997
-for step_size in 0.0333 #0.1000 0.3333
+for step_size in 0.0333
 do
     export step_size=$step_size
 
@@ -44,12 +44,6 @@ export pi_max_iters_first_train_lap=3
 export perf_metrics_pi_max_iters=50
 
 
-# =============================== INIT SETTINGS
-export init_model_path=none
-for init_name in rand_smooth
-do
-    export init_name=$init_name
-
 # =============================== MODEL HYPERS
 export alpha=1.100
 export tau=1.100
@@ -58,15 +52,23 @@ export lambda_w=0.001
 export weight_x=1.0
 
 ## Loop over weights to place on log p(y|x)
-for weight_y in 10.0 02.0 01.0
+for weight_y in 10.0 01.0
 do
     export weight_y=$weight_y
 
+
+# =============================== INIT SETTINGS
+export init_model_path=none
+for init_name in rand_smooth
+do
+    export init_name=$init_name
+
+## Loop over number of topics K
 for n_states in 004
 do
     export n_states=$n_states
 
-    export output_path="$XHOST_RESULTS_DIR/$dataset_name/$nickname-n_batches=$n_batches-lossandgrad_mod=$lossandgrad_mod_name-n_states=$n_states-alpha=$alpha-tau=$tau-lambda_w=$lambda_w-init_name=$init_name-alg_name=$alg_name-weight_x=$weight_x-weight_y=$weight_y-step_size=$step_size/1/"
+    export output_path="$XHOST_RESULTS_DIR/$dataset_name/$nickname-n_batches=$n_batches-lossandgrad_mod=$lossandgrad_mod_name-n_states=$n_states-alpha=$alpha-tau=$tau-lambda_w=$lambda_w-weight_x=$weight_x-weight_y=$weight_y-init_name=$init_name-alg_name=$step_direction-step_size=$step_size/1/"
 
     bash $PC_REPO_DIR/scripts/launch_job_on_host_via_env.sh || { exit 1; }
 

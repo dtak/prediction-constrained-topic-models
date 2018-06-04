@@ -11,7 +11,10 @@ export n_vocabs=9
 export n_outputs=2
 export n_train_docs=500
 
-export n_batches=1
+for n_batches in 01 05
+do
+export n_batches=$n_batches
+
 
 # =============================== OUTPUT SETTINGS
 export param_output_fmt="topic_model_snapshot"
@@ -21,21 +24,23 @@ export n_steps_to_print_early=2
 export n_steps_to_save_early=2
 export laps_to_save_custom='0,1,2,4,6,8,10'
 
+
 # =============================== ALGO SETTINGS
 export n_laps=100
 
 ## Overall training: L-BFGS 
 export alg_name="scipy_lbfgs_minimizer"
 
+
+# =============================== PER-DOC INFER SETTINGS
 ## Per-doc inference settings
 export pi_max_iters=100
 export pi_step_size=0.05
+export pi_max_iters_first_train_lap=10
 
-# =============================== INIT SETTINGS
-export init_model_path=none
-for init_name in rand_smooth
-do
-    export init_name=$init_name
+## Per-doc inference settings at perf-metric (eval step)
+export perf_metrics_pi_max_iters=100
+
 
 # =============================== MODEL HYPERS
 export alpha=1.100
@@ -49,6 +54,14 @@ for weight_y in 100.0 010.0 001.0
 do
     export weight_y=$weight_y
 
+
+# =============================== INIT SETTINGS
+export init_model_path=none
+for init_name in rand_smooth
+do
+    export init_name=$init_name
+
+
 ## Loop over number of topics K
 for n_states in 004
 do
@@ -56,8 +69,9 @@ do
 
     export output_path="$XHOST_RESULTS_DIR/$dataset_name/$nickname-n_batches=$n_batches-lossandgrad_mod=$lossandgrad_mod_name-n_states=$n_states-alpha=$alpha-tau=$tau-lambda_w=$lambda_w-weight_x=$weight_x-weight_y=$weight_y-init_name=$init_name-alg_name=$alg_name/1/"
 
-    bash $SSCAPEROOT/scripts/launch_job_on_host_via_env.sh || { exit 1; }
+    bash $PC_REPO_DIR/scripts/launch_job_on_host_via_env.sh || { exit 1; }
 
+done
 done
 done
 done
