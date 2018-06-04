@@ -34,7 +34,7 @@ for step_size in 0.0333 #0.1000 0.3333
 do
     export step_size=$step_size
 
-
+# =============================== PER-DOC INFER SETTINGS
 ## Per-doc inference settings at training
 export pi_max_iters=5
 export pi_step_size=0.05
@@ -45,8 +45,7 @@ export perf_metrics_pi_max_iters=50
 
 
 # =============================== INIT SETTINGS
-# =============================== INIT SETTINGS
-for init_name in good_loss_x_K4 good_loss_pc_K4
+for init_name in good_loss_pc_K4 good_loss_x_K4 good_loss_pc_K4
 do
 
     export init_model_path=$dataset_path"/"$init_name"_param_dict.dump"
@@ -67,7 +66,7 @@ do
 
     export output_path="$XHOST_RESULTS_DIR/$dataset_name/$nickname-n_batches=$n_batches-lossandgrad_mod=$lossandgrad_mod_name-n_states=$n_states-alpha=$alpha-tau=$tau-lambda_w=$lambda_w-init_name=$init_name-alg_name=$alg_name-weight_x=$weight_x-weight_y=$weight_y-step_size=$step_size/1/"
 
-    bash $SSCAPEROOT/scripts/launch_job_on_host_via_env.sh || { exit 1; }
+    bash $PC_REPO_DIR/scripts/launch_job_on_host_via_env.sh || { exit 1; }
 
 done
 done

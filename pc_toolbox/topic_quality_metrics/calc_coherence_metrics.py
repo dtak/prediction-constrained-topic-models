@@ -87,8 +87,8 @@ def calc_npmi_and_pmi_coherence_for_top_ranked_terms_in_topic(
         npmi_coherence_score += np.sum(npmi_coherence_score_Mrem)
         n_top_pairs += Mrem
     return (
-        npmi_coherence_score / n_top_pairs,
-        pmi_coherence_score / n_top_pairs,
+        npmi_coherence_score / (n_top_pairs + 1e-13),
+        pmi_coherence_score / (n_top_pairs + 1e-13),
         )
 
 

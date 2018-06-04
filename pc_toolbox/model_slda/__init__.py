@@ -9,6 +9,11 @@ from est_local_params__many_doc_map import (
     calc_nef_map_pi_DK,
     )
 
+from est_local_params__vb_qpiDir_qzCat import (
+    calc_elbo_for_many_docs,
+    )
+
+
 import slda_utils__dataset_manager
 import slda_utils__param_io_manager
 save_topic_model_param_dict = slda_utils__param_io_manager.save_topic_model_param_dict
