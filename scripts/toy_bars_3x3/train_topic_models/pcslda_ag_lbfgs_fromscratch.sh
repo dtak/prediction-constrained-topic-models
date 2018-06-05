@@ -4,6 +4,7 @@ nickname=20180301
 
 export lossandgrad_mod_name="slda_loss__autograd"
 
+
 # =============================== DATA SETTINGS
 export dataset_name=toy_bars_3x3
 export dataset_path="$PC_REPO_DIR/datasets/$dataset_name/"
@@ -30,6 +31,13 @@ export n_laps=100
 
 ## Overall training: L-BFGS 
 export alg_name="scipy_lbfgs_minimizer"
+
+
+
+
+
+
+
 
 
 # =============================== PER-DOC INFER SETTINGS
@@ -60,7 +68,6 @@ export init_model_path=none
 for init_name in rand_smooth
 do
     export init_name=$init_name
-
 
 ## Loop over number of topics K
 for n_states in 004

@@ -4,6 +4,7 @@ nickname=20180301
 
 export lossandgrad_mod_name="slda_loss__tensorflow"
 
+
 # =============================== DATA SETTINGS
 export dataset_name=toy_bars_3x3
 export dataset_path="$PC_REPO_DIR/datasets/$dataset_name/"
@@ -15,6 +16,7 @@ for n_batches in 01 05
 do
 export n_batches=$n_batches
 
+
 # =============================== OUTPUT SETTINGS
 export param_output_fmt="topic_model_snapshot"
 export n_steps_between_save=10
@@ -22,6 +24,7 @@ export n_steps_between_print=10
 export n_steps_to_print_early=2
 export n_steps_to_save_early=2
 export laps_to_save_custom='0,1,2,4,6,8,10'
+
 
 # =============================== ALGO SETTINGS
 export n_laps=200
