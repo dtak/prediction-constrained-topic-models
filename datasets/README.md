@@ -1,19 +1,8 @@
-# Quick Links
+Quick Links:
 
+* [Example datasets](#example-datasets)
 * [In-memory format](#in-memory-format)
 * [On-disk format](#on-disk-format)
-
-# List of Provided Datasets
-
-This repo comes with two example datasets, provided in our standard [on-disk format](#on-disk-format):
-
-* [toy_bars_3x3/](https://github.com/dtak/prediction-constrained-topic-models/tree/master/datasets/toy_bars_3x3/)
-
-> Small toy dataset of 9 vocab words arranged in 3x3 grid. Useful for visualing inspecting learned topic structure, which look like bars on the 3x3 grid.
-
-* [movie_reviews_pang_lee/](https://github.com/dtak/prediction-constrained-topic-models/tree/master/datasets/movie_reviews_pang_lee/)
-
-> Dataset of movie reviews, where prediction task is take a careful bag-of-words representation of plain-text reviews from professional critics, and predict a binary label of movie quality (1 = movie received more than 2-out-of-4 stars, 0 = otherwise). Originally from Pang & Lee ACL 2005.
 
 # Background: Datasets for supervised bag-of-words tasks
 
@@ -52,9 +41,22 @@ Dataset size variables and abbreviations:
 ```
 
 
+# Example datasets
+
+This repo comes with two example datasets, provided in our standard [on-disk format](#on-disk-format):
+
+* [toy_bars_3x3/](https://github.com/dtak/prediction-constrained-topic-models/tree/master/datasets/toy_bars_3x3/)
+
+> Small toy dataset of 9 vocab words arranged in 3x3 grid. Useful for visualing inspecting learned topic structure, which look like bars on the 3x3 grid.
+
+* [movie_reviews_pang_lee/](https://github.com/dtak/prediction-constrained-topic-models/tree/master/datasets/movie_reviews_pang_lee/)
+
+> Dataset of movie reviews, where prediction task is take a careful bag-of-words representation of plain-text reviews from professional critics, and predict a binary label of movie quality (1 = movie received more than 2-out-of-4 stars, 0 = otherwise). Originally from Pang & Lee ACL 2005.
+
+
 # In-memory format
 
-We represent one entire dataset (e.g. the train set or the test set) as one **Python dictionary** ('dict') object.
+For PC toolbox code, we represent one entire dataset (e.g. the train set or the test set) as one **Python dictionary** ('dict') object.
 
 This dictionary has at least the following key,value entries:
 ```
@@ -91,9 +93,7 @@ Example usage:
 
 # On-disk format
 
-Each dataset is located in its own folder on disk, such as:
-* [$PC_REPO_DIR/datasets/toy_bars_3x3/](https://github.com/dtak/prediction-constrained-topic-models/tree/master/datasets/toy_bars_3x3)
-* [$PC_REPO_DIR/datasets/movie_reviews_pang_lee/](https://github.com/dtak/prediction-constrained-topic-models/tree/master/datasets/movie_reviews_pang_lee)
+Each dataset is located in its own folder on disk, such as [datasets/movie_reviews_pang_lee/](https://github.com/dtak/prediction-constrained-topic-models/tree/master/datasets/movie_reviews_pang_lee)
 
 Inside the folder, the dataset is represented by several files contents that must match the following file names:
 
@@ -150,6 +150,7 @@ To obtain the relevant arrays for a given dense array, just do:
 The [.npy file format](https://docs.scipy.org/doc/numpy-dev/neps/npy-format.html) is a standard provided by numpy for saving/loading single arrays.
 
 We save the y outcomes from each dataset split (train/valid/test) as a single .npy file.
+
 
 
 ## TODO describe how missing values work
