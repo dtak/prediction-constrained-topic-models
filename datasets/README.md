@@ -45,6 +45,22 @@ Dataset size variables and abbreviations:
 ```
 
 
+# In-memory format
+
+We represent one entire dataset (e.g. the train set or the test set) as one **Python dictionary** ('dict') object.
+
+This dictionary has at least the following key,value entries:
+```
+* x_csr_DV : 2D scipy.sparse.csr_matrix, shape D x V (n_docs x n_vocabs)
+    Each row is sparse representation of x_d's count data.
+
+* y_DC : 2D numpy array, shape D x C (n_docs x n_labels)
+    Each row gives outcomes for doc d
+
+* n_docs : int
+    Total number of documents in this dataset
+```
+
 # On-disk format
 
 Each dataset is located in its own folder on disk, such as:
@@ -71,20 +87,6 @@ Inside the folder, the dataset is represented by several files contents that mus
 * Y_test.npy : npy file
 ```
 
-
-# In-memory format
-
-We represent datasets as dictionary objections, with keys:
-```
-* x_csr_DV : 2D scipy.sparse.csr_matrix, shape D x V (n_docs x n_vocabs)
-    Each row is sparse representation of x_d's count data.
-
-* y_DC : 2D numpy array, shape D x C (n_docs x n_labels)
-    Each row gives outcomes for doc d
-
-* n_docs : int
-    Total number of documents in this dataset
-```
 
 ## X_csr Disk Format : .npz file
 
