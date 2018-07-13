@@ -59,7 +59,28 @@ This dictionary has at least the following key,value entries:
 
 * n_docs : int
     Total number of documents in this dataset
+    
+* n_vocabs : int
+    Total number of possible vocabulary words in this dataset.
 ```
+
+## Python code for saving/loading
+
+A dataset's dictionary representation can be loaded/saved to disk via some useful functions defined in [`$PC_REPO_DIR/pc_toolbox/model_slda/slda_utils__dataset_manager.py`](https://github.com/dtak/prediction-constrained-topic-models/tree/master/pc_toolbox/model_slda/slda_utils__dataset_manager.py)
+
+Example usage:
+```
+>>> from slda_utils__dataset_manager import load_dataset
+>>> tr_dataset = load_dataset("$PC_REPO_DIR/datasets/toy_bars_3x3/", split_name='train')
+
+# Show y labels for first 5 documents
+>>> tr_dataset['y_DC'][:5]
+
+# Show dense array repr of x data of first 5 documents
+>>> tr_dataset['x_csr_DV'][:5].toarray()
+
+```
+
 
 # On-disk format
 
@@ -125,23 +146,3 @@ We save the y outcomes from each dataset split (train/valid/test) as a single .n
 
 
 ## TODO describe how missing values work
-
-
-## Python code for saving/loading
-
-Python code for saving/loading labeled datasets for topic modeling can be found in:
-
-[`$PC_REPO_DIR/pc_toolbox/model_slda/slda_utils__dataset_manager.py`](https://github.com/dtak/prediction-constrained-topic-models/tree/master/pc_toolbox/model_slda/slda_utils__dataset_manager.py)
-
-Example usage:
-```
->>> from slda_utils__dataset_manager import load_dataset
->>> tr_dataset = load_dataset("$PC_REPO_DIR/datasets/toy_bars_3x3", split_name='train')
-
-# Show y labels for first 5 documents
->>> tr_dataset['y_DC'][:5]
-
-# Show dense array repr of x data of first 5 documents
->>> tr_dataset['x_csr_DV'][:5].toarray()
-
-```
