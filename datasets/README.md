@@ -8,10 +8,14 @@ Toy dataset first described in Hughes et al. AISTATS 2018.
 
 Dataset of movie reviews, where prediction task is take a careful bag-of-words representation of plain-text reviews from professional critics, and predict a binary label of movie quality (1 = movie received more than 2-out-of-4 stars, 0 = otherwise).
 
+# Background: Datasets for supervised bag-of-words tasks
 
-# Dataset format for supervised topic modeling
+We consider supervised bag-of-words tasks, where we have as observed data many examples (aka 'documents'), indexed by 'd', which consist of pairs $x_d, y_d$, where:
 
-In this task, we have for each example (aka document, indexed by 'd') some input data x_d, and some outcome labels y_d:
+* x_d represents the input count data
+* y_d represents some target outcome labels of interest (binary movie rating, real-valued document score, etc)
+
+In Python, we could represent these values using Numpy arrays:
 ```
 * x_d_V : 1D array, size V
     bag-of-words count vector
@@ -40,28 +44,14 @@ Dataset size variables and abbreviations:
     number of non-zero (doc_id, vocab_id) pairs in sparse matrix
 ```
 
-## Overview
 
-Python code for saving/loading labeled datasets for topic modeling can be found in:
+# On-disk format
 
-[`$PC_REPO_DIR/pc_toolbox/model_slda/slda_utils__dataset_manager.py`](https://github.com/dtak/prediction-constrained-topic-models/tree/master/pc_toolbox/model_slda/slda_utils__dataset_manager.py)
+Each dataset is located in its own folder on disk, such as:
+* [$PC_REPO_DIR/datasets/toy_bars_3x3/](https://github.com/dtak/prediction-constrained-topic-models/tree/master/datasets/toy_bars_3x3)
+* [$PC_REPO_DIR/datasets/movie_reviews_pang_lee/](https://github.com/dtak/prediction-constrained-topic-models/tree/master/datasets/movie_reviews_pang_lee)
 
-Example usage:
-```
->>> from slda_utils__dataset_manager import load_dataset
->>> tr_dataset = load_dataset("$PC_REPO_DIR/datasets/toy_bars_3x3", split_name='train')
-
-# Show y labels for first 5 documents
->>> tr_dataset['y_DC'][:5]
-
-# Show dense array repr of x data of first 5 documents
->>> tr_dataset['x_csr_DV'][:5].toarray()
-
-```
-
-Each dataset (like toy_bars_3x3/) is located in its own folder on disk, with contents that must match the following file names:
-
-$ ls $PC_REPO_DIR/datasets/toy_bars_3x3/
+Inside the folder, the dataset is represented by several files contents that must match the following file names:
 
 ```
 * X_colnames.txt : utf-8 formatted text file
@@ -82,7 +72,7 @@ $ ls $PC_REPO_DIR/datasets/toy_bars_3x3/
 ```
 
 
-## In-memory format
+# In-memory format
 
 We represent datasets as dictionary objections, with keys:
 ```
@@ -132,6 +122,24 @@ The [.npy file format](https://docs.scipy.org/doc/numpy-dev/neps/npy-format.html
 We save the y outcomes from each dataset split (train/valid/test) as a single .npy file.
 
 
-# Dataset format for binary classification
+## TODO describe how missing values work
 
-TODO
+
+## Python code for saving/loading
+
+Python code for saving/loading labeled datasets for topic modeling can be found in:
+
+[`$PC_REPO_DIR/pc_toolbox/model_slda/slda_utils__dataset_manager.py`](https://github.com/dtak/prediction-constrained-topic-models/tree/master/pc_toolbox/model_slda/slda_utils__dataset_manager.py)
+
+Example usage:
+```
+>>> from slda_utils__dataset_manager import load_dataset
+>>> tr_dataset = load_dataset("$PC_REPO_DIR/datasets/toy_bars_3x3", split_name='train')
+
+# Show y labels for first 5 documents
+>>> tr_dataset['y_DC'][:5]
+
+# Show dense array repr of x data of first 5 documents
+>>> tr_dataset['x_csr_DV'][:5].toarray()
+
+```
