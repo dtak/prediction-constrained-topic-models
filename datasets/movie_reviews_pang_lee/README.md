@@ -39,6 +39,7 @@ unique tokens per doc   0%:     33    1%:     64   10%:    107   50%:    153   9
 1 labels
 1.000 (500/500) docs are labeled
  more_than_2_out_of_4_stars ( 1/1) frac positive 0.498 (   249/500)
+```
 
 ### TEST set of movie_reviews
 ```
