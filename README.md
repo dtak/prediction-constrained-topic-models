@@ -27,6 +27,20 @@ This repo is based on the following academic publication:
 
 # Examples
 
+## Python script to train binary classifier from bag-of-words data
+
+The primary script is train_and_eval_sklearn_binary_classifier.py
+```
+python train_and_eval_sklearn_binary_classifier.py \
+  --dataset_path $PC_REPO_DIR/datasets/toy_bars_3x3/ \
+  --output_path /tmp/demo_results/ \
+  --seed 8675309 \        # random seed (for reproducibility)
+  --feature_arr_names X \
+  --target_arr_name Y \
+  --classifier_name extra_trees \
+```
+
+
 ## Python script to train topic models with PC objective
 
 The primary script is train_slda_model.py. For a quick exmaple, you might call this python script as follows:
@@ -34,7 +48,7 @@ The primary script is train_slda_model.py. For a quick exmaple, you might call t
 ```
 python train_slda_model.py \
   --dataset_path $PC_REPO_DIR/datasets/toy_bars_3x3/ \
-  --output_path /tmp/ \
+  --output_path /tmp/demo_results/ \
   --seed 8675309 \        # random seed (for reproducibility)
   --alpha 1.1 \           # scalar hyperparameter for Dirichlet prior over doc-topic probas
   --tau 1.1 \             # scalar hyperparameter for Dirichlet prior over topic-word probas
