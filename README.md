@@ -1,22 +1,31 @@
 # Prediction-Constrained Topic Models
-Public repo containing code to train, visualize, and evaluate semi-supervised topic models, as described in Hughes et al. AISTATS 2018:
+
+Public repo containing code to train, visualize, and evaluate semi-supervised topic models. Also includes code for baseline classifiers/regressors to perform supervised prediction on bag-of-words datasets.
 
 # Overview
 
 ### Repo overview
-```
-* datasets/
-  Provided datasets for simple experiments
-* pc_toolbox/
-  Main python package
-* scripts/
-  Bash scripts to run experiments
-```
+
+* [datasets/](https://github.com/dtak/prediction-constrained-topic-models/tree/master/datasets/)
+* * Provided example datasets for simple experiments. Overview in [datasets/README.md](https://github.com/dtak/prediction-constrained-topic-models/tree/master/datasets/README.md).
+  
+* [pc_toolbox/](https://github.com/dtak/prediction-constrained-topic-models/tree/master/pc_toolbox/)
+* * Main python package, with code for training PC topic models and some baseline classifiers/regressors.
+
+* [scripts/](https://github.com/dtak/prediction-constrained-topic-models/tree/master/scripts/)
+* * Bash scripts to run experiments. Support SLURM/LSF/SGE clusters.
 
 ### Resources
 
+This repo is based on the following academic publication:
+
+> "Prediction-constrained semi-supervised topic models"
+> M. C. Hughes, L. Weiner, G. Hope, T. H. McCoy, R. H. Perlis, E. B. Sudderth, and F. Doshi-Velez
+> Artificial Intelligence & Statistics (AISTATS), 2018.
+
 * Paper PDF: https://www.michaelchughes.com/papers/HughesEtAl_AISTATS_2018.pdf
 * Supplement PDF: https://www.michaelchughes.com/papers/HughesEtAl_AISTATS_2018_supplement.pdf
+
 
 # Examples
 
