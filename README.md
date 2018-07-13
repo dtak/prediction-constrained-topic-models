@@ -4,7 +4,16 @@ Public repo containing code to train, visualize, and evaluate semi-supervised to
 
 # Overview
 
-### Repo overview
+This repo is based on the following academic publication:
+
+> "Prediction-constrained semi-supervised topic models"
+> M. C. Hughes, L. Weiner, G. Hope, T. H. McCoy, R. H. Perlis, E. B. Sudderth, and F. Doshi-Velez
+> Artificial Intelligence & Statistics (AISTATS), 2018.
+
+* Paper PDF: https://www.michaelchughes.com/papers/HughesEtAl_AISTATS_2018.pdf
+* Supplement PDF: https://www.michaelchughes.com/papers/HughesEtAl_AISTATS_2018_supplement.pdf
+
+### Contents
 
 * [datasets/](https://github.com/dtak/prediction-constrained-topic-models/tree/master/datasets/)
 * * Provided example datasets for simple experiments. Overview in [datasets/README.md](https://github.com/dtak/prediction-constrained-topic-models/tree/master/datasets/README.md).
@@ -15,32 +24,22 @@ Public repo containing code to train, visualize, and evaluate semi-supervised to
 * [scripts/](https://github.com/dtak/prediction-constrained-topic-models/tree/master/scripts/)
 * * Bash scripts to run experiments. Support SLURM/LSF/SGE clusters.
 
-### Resources
-
-This repo is based on the following academic publication:
-
-> "Prediction-constrained semi-supervised topic models"
-> M. C. Hughes, L. Weiner, G. Hope, T. H. McCoy, R. H. Perlis, E. B. Sudderth, and F. Doshi-Velez
-> Artificial Intelligence & Statistics (AISTATS), 2018.
-
-* Paper PDF: https://www.michaelchughes.com/papers/HughesEtAl_AISTATS_2018.pdf
-* Supplement PDF: https://www.michaelchughes.com/papers/HughesEtAl_AISTATS_2018_supplement.pdf
-
 
 # Examples
 
-## Basic script
+## Python script to train topic models with PC objective
 
-See train_slda_model.py
+The primary script is train_slda_model.py. For a quick exmaple, you might call this python script as follows:
+
 ```
 python train_slda_model.py \
   --dataset_path $PC_REPO_DIR/datasets/toy_bars_3x3/ \
   --output_path /tmp/ \
-  --seed 8675309 \
-  --alpha 1.1 \
-  --tau 1.1 \
+  --seed 8675309 \        # random seed (for reproducibility)
+  --alpha 1.1 \           # scalar hyperparameter for Dirichlet prior over doc-topic probas
+  --tau 1.1 \             # scalar hyperparameter for Dirichlet prior over topic-word probas
   --weight_y 5.0 \        # aka "lambda" in AISTATS paper, the key hyperparameter to emphasize y|x
-  --n_laps 10 \
+  --n_laps 10 \           # number of laps (aka epochs). this will complete 10 full passes thru training dataset.
   --n_batches 1 \
   --alg_name grad_descent_minimizer \
 ```
