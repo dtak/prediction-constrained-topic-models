@@ -24,8 +24,8 @@ if [[ $XHOST == 'list' || $XHOST == 'dry' ]]; then
     fi
 elif [[ $XHOST == 'grid' ]]; then
     # Launch each job on grid computing system (LSF/SLURM/SGE)
-    launcher_exe=`python $PC_REPO_DIR/scripts/grid_tools/detect_grid_executable.py`
-    tmp_script_path=`python $PC_REPO_DIR/scripts/grid_tools/make_launcher_script.py`
+    launcher_exe=`python $PC_REPO_DIR/scripts/launcher_tools/detect_grid_executable.py`
+    tmp_script_path=`python $PC_REPO_DIR/scripts/launcher_tools/make_launcher_script.py`
     CMD="$launcher_exe < $tmp_script_path"
     eval $CMD
 elif [[ $XHOST == 'local' ]]; then

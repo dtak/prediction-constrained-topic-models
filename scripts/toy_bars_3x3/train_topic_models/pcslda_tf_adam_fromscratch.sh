@@ -65,7 +65,7 @@ do
 
     export output_path="$XHOST_RESULTS_DIR/$dataset_name/$nickname-n_batches=$n_batches-lossandgrad_mod=$lossandgrad_mod_name-n_states=$n_states-alpha=$alpha-tau=$tau-lambda_w=$lambda_w-weight_x=$weight_x-weight_y=$weight_y-init_name=$init_name-alg_name=$step_direction-step_size=$step_size/1/"
 
-    bash $SSCAPEROOT/scripts/launch_job_on_host_via_env.sh || { exit 1; }
+    bash $PC_REPO_DIR/scripts/launch_job_on_host_via_env.sh || { exit 1; }
 
 done
 done

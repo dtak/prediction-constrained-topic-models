@@ -73,7 +73,7 @@ def make_launcher_script_file():
     ext_str = detect_template_ext_for_current_system()
     template_fpath = os.path.join(
         os.path.expandvars("$PC_REPO_DIR/scripts/launcher_tools/"),
-        "/template." + ext_str)
+        "template.%s" % ext_str)
     with open(template_fpath, "r") as f:
         template_lines = f.readlines()
 
