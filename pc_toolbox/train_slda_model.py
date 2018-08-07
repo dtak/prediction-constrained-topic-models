@@ -10,6 +10,7 @@ from pc_toolbox.utils_io import (
     setup_random_seed,
     write_user_provided_kwargs_to_txt,
     write_env_vars_to_txt,
+    write_python_module_versions_to_txt,
     )
 
 from pc_toolbox.algs_gradient_descent import (
@@ -317,10 +318,15 @@ if __name__ == '__main__':
     arg_dict['seed'] = setup_random_seed(
         **arg_dict)
 
+    # Write useful environment info to .txt
+    # so we can reproduce later
     write_user_provided_kwargs_to_txt(
         arg_dict=arg_dict,
         output_path=arg_dict['output_path'])
     write_env_vars_to_txt(
+        output_path=arg_dict['output_path'])
+    write_python_module_versions_to_txt(
+        context_dict=locals(),
         output_path=arg_dict['output_path'])
 
     train_slda_model(
