@@ -45,9 +45,14 @@ def add_directives_to_cython_ext(ext):
         'cdivision':True}
     return ext
 
+def read_version(txtpath):
+    with open(txtpath, 'r') as f:
+        version = f.readline().strip()
+    return version
+
 setup(
     name='pc_toolbox',
-    version='0.1',
+    version=read_version('version.txt'),
     description='Prediction-constrained training for supervised topic models',
     long_description='Support code for Hughes et al AISTATS 2018',
     classifiers=[

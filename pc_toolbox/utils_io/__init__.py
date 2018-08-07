@@ -1,6 +1,8 @@
 from pprint_logging import pprint, config_pprint_logging
 from util_pprint_percentiles import make_percentile_str
 
+from util_watermark import make_string_of_reachable_modules_with_versions
+
 from util_timing import (
     start_timer_segment,
     stop_timer_segment,
@@ -28,6 +30,7 @@ from util_setup import (
     setup_output_path,
     write_user_provided_kwargs_to_txt,
     write_env_vars_to_txt,
+    write_python_module_versions_to_txt,
     )
 
 from util_io_csr import (

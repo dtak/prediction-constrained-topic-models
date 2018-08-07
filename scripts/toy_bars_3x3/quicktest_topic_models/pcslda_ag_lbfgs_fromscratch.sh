@@ -17,8 +17,6 @@ export n_batches=1
 export param_output_fmt="topic_model_snapshot"
 export n_steps_between_save=10
 export n_steps_between_print=10
-export n_seconds_between_save=-1
-export n_seconds_between_print=-1
 export n_steps_to_print_early=2
 export n_steps_to_save_early=2
 export laps_to_save_custom='0,1,2,4,6,8,10'
@@ -29,9 +27,16 @@ export n_laps=3
 ## Overall training: L-BFGS 
 export alg_name="scipy_lbfgs_minimizer"
 
-## Per-doc inference settings
+
+# =============================== PER-DOC INFER SETTINGS
+## Per-doc inference settings at training
 export pi_max_iters=5
 export pi_step_size=0.05
+export pi_max_iters_first_train_lap=3
+
+## Per-doc inference settings at perf-metric (eval step)
+export perf_metrics_pi_max_iters=50
+
 
 ## Per-doc inference settings during training
 export pi_max_iters_first_train_lap=3

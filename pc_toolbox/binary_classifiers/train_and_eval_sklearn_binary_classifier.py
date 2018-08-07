@@ -56,8 +56,13 @@ from pc_toolbox.utils_io import (
     load_list_of_strings_from_txt,
     load_list_of_unicode_from_txt,
     )
+import matplotlib.pyplot as plt
 
 from calc_roc_auc_via_bootstrap import calc_binary_clf_metric_with_ci_via_bootstrap
+
+from utils_calibration import (
+    calc_binary_clf_calibration_per_bin,
+    plot_binary_clf_calibration_curve_and_histograms)
 
 def read_args_from_stdin_and_run():
     ''' Main executable function to train and evaluate classifier.
@@ -398,6 +403,20 @@ def read_args_from_stdin_and_run():
         elapsed_time = time.time() - start_time
         pprint('[run_classifier says:] target %s completed after %.2f sec' % (target_names[c], elapsed_time))
 
+
+def calc_calibration_info(clf, x, y, bins=5):
+    assert len(clf.classes_) == 2
+    assert clf.classes_[0] == 0
+    assert clf.classes_[1] == 1        
+    y_proba = clf.predict_proba(x)
+    if y_proba.ndim > 1:
+        assert y_proba.shape[1] == 2
+        y_proba = y_proba[:, 1]
+    info_per_bin = calc_binary_clf_calibration_per_bin(
+        y, y_proba,
+        bins=bins)
+    return info_per_bin
+
 def calcfrac(bmask):
     return np.sum(bmask) / float(bmask.size)
 
@@ -525,11 +544,19 @@ def make_constructor_and_evaluator_funcs(
         assert yhat.ndim == 1
         return f1_score(y, yhat, pos_label=clf.classes_[1])
 
+    def make_clf_report(clf, x, y, header=''):
+        r_str = header
+        r_str += make_confusion_matrix_report(clf, x, y)
+        r_str += u"acc %.4f\n" % calc_accuracy_score(clf, x, y)
+        r_str += u" f1 %.4f\n" % calc_f1_score(clf, x, y)
+        r_str += u"auc %.4f\n" % calc_auc_score(clf, x, y)
+        r_str += make_calibration_report(clf, x, y)
+        return r_str
+
     def make_confusion_matrix_report(clf, x, y):
         assert len(clf.classes_) == 2
         assert clf.classes_[0] == 0
-        assert clf.classes_[1] == 1
-        
+        assert clf.classes_[1] == 1        
         y_pred = clf.predict(x)
         cm = sk_confusion_matrix(y, y_pred)
         cm = pd.DataFrame(data=cm, columns=[0, 1], index=[0, 1])
@@ -537,13 +564,23 @@ def make_constructor_and_evaluator_funcs(
         cm.index.name = 'True label'
         return "\n%s\n" % unicode(cm)
 
-    def make_clf_report(clf, x, y, header=''):
-        r_str = header
-        r_str += make_confusion_matrix_report(clf, x, y)
-        r_str += u"acc %.4f\n" % calc_accuracy_score(clf, x, y)
-        r_str += u" f1 %.4f\n" % calc_f1_score(clf, x, y)
-        r_str += u"auc %.4f\n" % calc_auc_score(clf, x, y)
+
+    def make_calibration_report(clf, x, y, bins=5):
+        """ Make plain-text report on clf calibration performance
+        """
+        info_per_bin = calc_calibration_info(
+            clf, x, y, bins=bins)
+        bin_edges = info_per_bin['bin_edges']
+        r_str = "\nCalibration"
+        for bb in range(bin_edges.size - 1):
+            r_str += "\nproba bin [%.2f, %.2f]  count %5d  fracTP %.3f" % (
+                bin_edges[bb],
+                bin_edges[bb+1],
+                info_per_bin['count_per_bin'][bb],
+                info_per_bin['fracTP_per_bin'][bb],
+                )
         return r_str
+
 
     def make_csv_row_dict(clf, x, y, y_col_name, split_name, classifier_name):
         keepers = np.isfinite(y)
@@ -953,10 +990,14 @@ def train_and_eval_clf_with_best_params_via_grid_search(
             csv_fpath = os.path.join(
                 output_path,
                 'clf_%d_callback_%s.csv' % (y_orig_col_id, split))
+
+            x_cursplit, y_cursplit = make_nonnan_xy_for_target(
+                datasets_by_split[split],
+                y_col_id=y_col_id)
             row_dict = make_csv_row_dict(
                 best_clf,
-                datasets_by_split[split]['x'],
-                datasets_by_split[split]['y'][:, y_col_id],
+                x_cursplit,
+                y_cursplit,
                 y_col_name,
                 split,
                 classifier_name)
@@ -964,6 +1005,22 @@ def train_and_eval_clf_with_best_params_via_grid_search(
             csv_df.to_csv(
                 csv_fpath,
                 index=False)
+
+            if hasattr(best_clf, 'predict_proba'):
+                for nbins in [6, 10, 20]:
+                    fig_fpath = os.path.join(
+                        output_path,
+                        'clf_%d_calibration_%02dbin_%s.pdf' % (
+                            y_orig_col_id, nbins, split))
+
+                    info_per_bin = calc_calibration_info(
+                        best_clf, x_cursplit, y_cursplit, bins=nbins)
+                    plot_binary_clf_calibration_curve_and_histograms(
+                        info_per_bin=info_per_bin)
+                    plt.savefig(
+                        fig_fpath,
+                        bbox_inches='tight',
+                        pad_inches=0)
             if verbose:
                 elapsed_time = time.time() - start_time
                 pprint("eval %d/%d on %5s split done after %11.2f sec" % (

@@ -27,6 +27,10 @@ from pc_toolbox.utils_io import (
 from pc_toolbox.topic_quality_metrics import (
     calc_coherence_metrics as coh
     )
+from pc_toolbox.model_slda.est_local_params__vb_qpiDir_qzCat import (
+    calc_elbo_for_many_docs)
+
+
 def calc_perf_metrics_for_snapshot_param_dict(
         param_dict=None,
         topics_KV=None,
@@ -190,7 +194,7 @@ def calc_perf_metrics_for_snapshot_param_dict(
             # Remember, y_proba_DC is really estimated mean of y_DC
             y_est_DC = ans_dict.pop('y_proba_DC')
             for c in xrange(n_labels):
-                y_true_c_D = datasets_by_split['split']['y_DC'][:, c]
+                y_true_c_D = datasets_by_split[split_name]['y_DC'][:, c]
                 y_est_c_D = y_est_DC[:, c]
                 # Keep only finite values
                 rowmask = np.logical_and(
@@ -204,6 +208,20 @@ def calc_perf_metrics_for_snapshot_param_dict(
                 rmse = np.sqrt(np.mean(np.square(y_true_c_D - y_est_c_D)))
                 info_dict['y_%d_rmse' % c] = rmse
         etimes = stop_timer_segment(etimes, '%s_calc_y_metrics' % split_name)
+
+        ## Compute vb lower bound on logpdf x
+        etimes = start_timer_segment(etimes, '%s_calc_lb_logpdf_x' % split_name)
+        lb_logpdf_x, lb_logpdf_x_pertok = calc_elbo_for_many_docs(
+            dataset=datasets_by_split[split_name],
+            topics_KV=topics_KV,
+            alpha=alpha,
+            init_name_list=['warm'],
+            init_pi_DK=pi_DK,
+            verbose=False,
+            do_trace_elbo=False,
+            )
+        etimes = stop_timer_segment(etimes, '%s_calc_lb_logpdf_x' % split_name)
+        info_dict['elbo_logpdf_x_pertok'] = lb_logpdf_x_pertok
 
         ## COHERENCE
         etimes = start_timer_segment(etimes, '%s_calc_coher_metrics' % split_name)

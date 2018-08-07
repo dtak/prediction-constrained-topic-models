@@ -8,6 +8,7 @@ from distutils.dir_util import mkpath
 from numexpr.cpuinfo import cpuinfo as numexpr_cpuinfo
 
 from pprint_logging import config_pprint_logging, pprint
+import util_watermark
 
 def setup_detect_taskid_and_insert_into_output_path(
         output_path=None,
@@ -209,3 +210,19 @@ def write_user_provided_kwargs_to_txt(
     with open(txt_fpath, 'w') as f:
         for key in sorted(arg_dict.keys()):
             f.write("--%s %s\n" % (key, str(arg_dict[key])))
+
+def write_python_module_versions_to_txt(
+        context_dict=None,
+        output_path=None):
+    """ Write .txt file to provided output_path dir with module info.
+
+    Post condition
+    --------------
+    Writes plain text file called "modules_with_versions.txt" to disk.
+    Each line contains name and version number of a python module.
+    """
+    watermark_string = util_watermark.make_string_of_reachable_modules_with_versions(
+        context_dict=context_dict)
+    txt_fpath = os.path.join(output_path, 'modules_with_versions.txt')
+    with open(txt_fpath, 'w') as f:
+        f.write(watermark_string)

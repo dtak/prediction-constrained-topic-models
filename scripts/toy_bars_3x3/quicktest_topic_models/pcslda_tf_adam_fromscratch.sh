@@ -30,11 +30,11 @@ export step_direction='adam'
 export decay_staircase=0
 export decay_interval=1
 export decay_rate=0.997
-for step_size in 0.0333 #0.1000 0.3333
+for step_size in 0.0333
 do
     export step_size=$step_size
 
-
+# =============================== PER-DOC INFER SETTINGS
 ## Per-doc inference settings at training
 export pi_max_iters=5
 export pi_step_size=0.05
@@ -42,6 +42,7 @@ export pi_max_iters_first_train_lap=3
 
 ## Per-doc inference settings at perf-metric (eval step)
 export perf_metrics_pi_max_iters=50
+
 
 # =============================== INIT SETTINGS
 export init_model_path=none
@@ -57,10 +58,11 @@ export lambda_w=0.001
 export weight_x=1.0
 
 ## Loop over weights to place on log p(y|x)
-for weight_y in 10.0 02.0 01.0
+for weight_y in 10.0 01.0
 do
     export weight_y=$weight_y
 
+## Loop over number of topics K
 for n_states in 004
 do
     export n_states=$n_states
