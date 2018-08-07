@@ -40,14 +40,12 @@ def print_lowercase_env_vars_as_keyword_args():
 
             # handle negative nums as values
             if val.startswith("-") and val[1].isdigit():
-                val = '" ' + val + '"'
+                val = '" %s"' % (val)
             # handle paths with ( or ) in them
             if val.count("("):
                 # wrap parentheses with double quotes
                 val = '"%s"' % (val)
-            elif val.count(" "):
-                if val.count('"') > 0:
-                    raise ValueError("%s:%s" % (key, val))
+            if val.count(" ") and not (val.startswith('"') and val.endswith('"')):
                 val = '"%s"' % (val)
 
             #else:

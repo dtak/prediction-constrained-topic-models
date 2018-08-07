@@ -32,6 +32,15 @@ fi
 echo "Python executable:"
 echo $XHOST_PYTHON_EXE
 
+# Verify place to save results exists
+if [[ -z $XHOST_RESULTS_DIR ]]; then
+    echo "Error: Need to define XHOST_RESULTS_DIR." 1>&2;
+    exit;
+fi
+echo "XHOST_RESULTS_DIR=$XHOST_RESULTS_DIR"
+
+
+
 # If user desired to run on grid computing...
 if [[ $XHOST == 'grid' ]]; then
     # Verify place to write logs exists

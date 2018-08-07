@@ -3,9 +3,9 @@ import sys
 import subprocess
 import shutil
 import hashlib
-import numexpr as ne
 import glob
 from distutils.dir_util import mkpath
+from numexpr.cpuinfo import cpuinfo as numexpr_cpuinfo
 
 from pprint_logging import config_pprint_logging, pprint
 
@@ -53,10 +53,9 @@ def setup_detect_taskid_and_insert_into_output_path(
     output_path = os.path.sep.join(output_folders)    
 
     do_only_run_if_empty = int(do_only_run_if_empty)
-    print 'do_only_run_if_empty', do_only_run_if_empty
     if do_only_run_if_empty != 0:
+        pprint("do_only_run_if_empty: %s" % do_only_run_if_empty)
         snap_list = glob.glob(os.path.join(output_path, 'lap*_snapshot'))
-        print 'len(snap_list)', len(snap_list)
         if do_only_run_if_empty > 0 and len(snap_list) >= 10:
             raise ValueError("RUN ALREADY COMPLETED. SKIPPING...")
         elif do_only_run_if_empty < 0 and len(snap_list) < 10:
@@ -88,14 +87,21 @@ def setup_output_path(
     info_list.append('hostname = %s' % uname_list[1])
     info_list.append(' '.join(map(str, uname_list)))
     try:
-        cpu_list = ne.cpuinfo.cpuinfo.info
+        cpu_list = numexpr_cpuinfo.info
         if isinstance(cpu_list, list):
             info_list.append('n_cpus = %d' % len(cpu_list))
             for cpu_info in cpu_list[:4]:
                 info_list.append(
                     '%s MHz  %s' % (cpu_info['cpu MHz'], cpu_info['model name']))
+            if len(cpu_list) > 5:
+                info_list.append('...')
+            if len(cpu_list) > 4:
+                info_list.append(
+                    '%s MHz  %s' % (cpu_list[-1]['cpu MHz'], cpu_list[-1]['model name']))
+
     except Exception as e:
-        print str(e)
+        pprint("Skipping over error in numexpr_cpuinfo call (not necessary, just useful):")
+        pprint("    " + str(e))
         pass
     info_list.append('')
     with open(os.path.join(output_path, 'machine_info.txt'), 'w') as f:
@@ -113,7 +119,7 @@ def setup_output_path(
             os.symlink(stdout_file, os.path.join(output_path, 'grid_log.out'))
             os.symlink(stderr_file, os.path.join(output_path, 'grid_log.err'))
         except Exception as e:
-            print str(e)
+            pprint(str(e))
             pass
 
     return output_path

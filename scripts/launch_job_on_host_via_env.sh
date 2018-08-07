@@ -5,6 +5,17 @@
 # Each call to this script will launch separate "job" (locally or on grid)
 # Location of job depends on the value of XHOST environment variable
 
+if [[ -z $XHOST_RESULTS_DIR || ! -d $XHOST_RESULTS_DIR  ]]; then
+    echo "Env var XHOST_RESULTS_DIR must exist and point to valid directory; Try 'export XHOST_RESULTS_DIR=/tmp/'"
+    exit 1;
+fi
+if [[ -z $PC_REPO_DIR || ! -d $PC_REPO_DIR ]]; then
+    echo "Env var PC_REPO_DIR must exist and point to the directory where you've cloned the repo; Try 'export PC_REPO_DIR=/path/to/repo/'"
+    exit 1;
+fi;
+
+
+
 if [[ $XHOST == 'list' || $XHOST == 'dry' ]]; then
     if [[ -z $target_names ]]; then
         echo $output_path
@@ -13,8 +24,8 @@ if [[ $XHOST == 'list' || $XHOST == 'dry' ]]; then
     fi
 elif [[ $XHOST == 'grid' ]]; then
     # Launch each job on grid computing system (LSF/SLURM/SGE)
-    launcher_exe=`python $PC_REPO_ROOT/scripts/grid_tools/detect_grid_executable.py`
-    tmp_script_path=`python $PC_REPO_ROOT/scripts/grid_tools/make_launcher_script.py`
+    launcher_exe=`python $PC_REPO_DIR/scripts/grid_tools/detect_grid_executable.py`
+    tmp_script_path=`python $PC_REPO_DIR/scripts/grid_tools/make_launcher_script.py`
     CMD="$launcher_exe < $tmp_script_path"
     eval $CMD
 elif [[ $XHOST == 'local' ]]; then

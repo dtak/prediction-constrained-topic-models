@@ -1,6 +1,6 @@
 export XHOST_NTASKS=1
 export XHOST_BASH_EXE=$PC_REPO_DIR/scripts/train_slda.sh
-nickname=20180301
+nickname=quicktest
 
 export lossandgrad_mod_name="slda_loss__autograd"
 
@@ -24,7 +24,7 @@ export n_steps_to_save_early=2
 export laps_to_save_custom='0,1,2,4,6,8,10'
 
 # =============================== ALGO SETTINGS
-export n_laps=10
+export n_laps=3
 
 ## Overall training: L-BFGS 
 export alg_name="scipy_lbfgs_minimizer"
@@ -32,6 +32,12 @@ export alg_name="scipy_lbfgs_minimizer"
 ## Per-doc inference settings
 export pi_max_iters=5
 export pi_step_size=0.05
+
+## Per-doc inference settings during training
+export pi_max_iters_first_train_lap=3
+
+## Per-doc inference settings at perf-metric (eval step)
+export perf_metrics_pi_max_iters=50
 
 # =============================== INIT SETTINGS
 export init_model_path=none
@@ -57,7 +63,7 @@ do
 
     export output_path="$XHOST_RESULTS_DIR/$dataset_name/$nickname-n_batches=$n_batches-lossandgrad_mod=$lossandgrad_mod_name-n_states=$n_states-alpha=$alpha-tau=$tau-lambda_w=$lambda_w-init_name=$init_name-alg_name=$alg_name-weight_x=$weight_x-weight_y=$weight_y-step_size=$step_size/1/"
 
-    bash $SSCAPEROOT/scripts/launch_job_on_host_via_env.sh || { exit 1; }
+    bash $PC_REPO_DIR/scripts/launch_job_on_host_via_env.sh || { exit 1; }
 
 done
 done
